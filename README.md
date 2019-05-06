@@ -2,7 +2,7 @@
 
 by Edgar D. Klenske
 
-> it is not important to accumulate knowledge
+> it is not important to accumulate knowledge\
 > it is important to share it
 
 ## Beauty lies in the eye of the beholder

@@ -1,0 +1,651 @@
+\chapter{Additional Material}
+\label{ch:appendix}
+
+\section{Reference Tracking Dynamic Programming}
+\label{app:reference-dp}
+
+We start with the standard discrete-time system
+\begin{equation}
+  x_{\tk+1} = A x_\tk + B u_\tk
+\end{equation}
+with system matrices $A$ and $B$ of appropriate size, and the quadratic
+reference tracking cost function
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  J(x_0,\mathbf{u},\mathbf{\xref}) = \frac{1}{2} (x_T - \xref_T)\T \SC_T (x_T -
+  \xref_T) +
+  \frac{1}{2} \sum_{\i=0}^{T-1}
+  (x_i - r_i)\T \SC_i (x_i - r_i) + u_i\T \CC_i u_i,
+\end{equation}
+\end{fullwidth}
+where $\mathbf{\xref}\ce [\xref_0, \dots, \xref_T]$ is the state reference
+trajectory. Trajectories in input can be added in a similar way, but are not
+relevant for this thesis.
+
+For the Riccati recursion, the quadratic ansatz has to include the linear terms
+as well:
+\begin{equation}
+  J_\i(x_\i) = \frac{1}{2} x_\i\T \VM_\i x_\i + \vv_\i\T x_\i + \const,
+\end{equation}
+where the remaining parts (depending neither on $x_\i$ nor on $u_\i$) are
+dropped, since they are not relevant for the optimization.
+
+The recursion starts at the last time step $T$:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  J_T(x_T) = J_T^*(x_T) = \frac{1}{2} x_T\T \SC_T x_T - {\xref_T}\T \SC_T x_T +
+\const
+  = \frac{1}{2} x_T\T \VM_T x_T + \vv_T\T x_T + \const.
+\end{equation}
+\end{fullwidth}
+In each subsequent recursion step, the stage cost is evaluated and the
+quadratic optimal cost-to-go is expanded according to the state-transition
+function $x_{\i+1}=Ax_\i+Bu_\i$. This amounts to
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{multline}
+  \label{eq:ref-dp-cost}
+  J_\i(x_\i, u_\i) = \frac{1}{2} x_\i\T \SC_\i x_\i - {\xref_\i}\T \SC_\i x_i
+  + \frac{1}{2} u_\i\T \CC_\i u_\i
+  + \frac{1}{2} x_i\T A\T \VM_{\i+1} Ax_\i \\
+  + \frac{1}{2} u_i\T B\T \VM_{\i+1} B u_i + x_i\T A\T \VM_{\i+1} B u_\i
+  + \vv_{\i+1}\T Ax_\i + \vv_{\i+1}\T B u_\i + \const,
+\end{multline}
+\end{fullwidth}
+where we take the derivative to find the optimal input $u_i^*$:
+\begin{equation}
+  \frac{\de}{\de u_\i} J_\i(x_\i, u_\i) = u_\i\T R_\i + u_\i\T B\T \VM_{\i+1} B
+  + x_\i\T A\T \VM_{\i+1} B + \vv_{\i+1}\T B.
+\end{equation}
+Equating to zero and solving for $u_\i$ results in the optimal solution
+\begin{equation}
+  \label{eq:ref-dp-policy}
+  u_\i^*(x_\i) = -\left(R_\i + B\T \VM_{\i+1} B\right)\inv
+  \left(B\T \VM_{\i+1} A x_\i + B\T \vv_{\i+1}\right),
+\end{equation}
+which is the optimal control policy. Inserting
+\eqref{eq:ref-dp-policy} back into the cost \eqref{eq:ref-dp-cost} to obtain
+the optimal cost results in
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{multline}
+  J_\i^*(x_\i) =
+  \frac{1}{2} x_\i\T (A\T \VM_{\i+1} A
+    - A\T \VM_{\i+1} B \left(B\T \VM_{\i+1} B + \CC_\i\right)\inv
+    B\T \VM_{\i+1} A + \SC_\i) x_\i \\
+  + \left(\vv_{\i+1}\T A - {\xref_\i}\T \SC_\i - \vv_{\i+1}\T B
+    \left(B\T \VM_{\i+1} B + \CC_\i\right)\inv B\T \VM_{\i+1} A\right)x_\i +
+\const,
+\end{multline}
+\end{fullwidth}
+where we can already read off the recursion for $\VM_\i$ and $\vv_i$:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{subequations}
+\begin{alignat}{3}
+    \VM_\i &= A\T\left(\VM_{\i+1}-\VM_{\i+1}B\left(B\T \VM_{\i+1} B
+        + \CC_\i\right)\inv B\T \VM_{\i+1} \right) A + \SC_\i \qqqq & \VM_T &=
+\SC_T\\
+    \vv_i &= A\T\left(\vv_{\i+1}-\VM_{\i+1}B\left(B\T
+        \VM_{\i+1} B + \CC_\i\right)\inv B\T \vv_{\i+1} \right)
+     - \SC_\i {\xref_\i} \qqqq & \vv_T &= -\SC_T \xref_T,
+\end{alignat}
+\end{subequations}
+\end{fullwidth}
+
+\section{Stochastic Dynamic Programming}
+\label{app:stochastic-dp}
+
+In order to assess the overall value of a given state under uncertain dynamics,
+it is important to keep the terms that are usually dropped in the DP
+calculations. We start with the discrete stochastic system
+\begin{subequations}
+\begin{alignat}{3}
+  x_{\tk+1} &= A x_\tk + B u_\tk + \dist_\tk \qq&\qq \dist_\tk &\sim
+\N(0,\DC)\\
+  y_\tk &= C x_\tk + \noise_\tk &\q \noise_\tk &\sim \N(0,\NC),
+\end{alignat}
+\end{subequations}
+with system matrices $A$, $B$, and $C$ of appropriate size, and the quadratic
+cost function
+\begin{equation}
+  J(p(x_0),\mathbf{u},\mathbf{\xref}) = \Exp_\mathbf{x} \left[\frac{1}{2} x_T\T
+  \SC_T x_T +
+  \frac{1}{2} \sum_{\i=0}^{T-1}
+  x_i\T \SC_\i x_i + u_i\T \CC_\i u_i\right],
+\end{equation}
+with state cost matrices $\SC_i$ and control cost matrices $\CC_i$.
+
+For the Riccati recursion we use the standard quadratic ansatz
+\begin{equation}
+  J_\i(p(x_\i)) = J^*_\i(p(x_\i)) = \Exp_{x_\i} \left[\frac{1}{2} x_\i\T \VM_\i
+x_\i\right] + \nu_\i,
+\end{equation}
+where we choose collect the constant terms outside of the expectation.
+
+The recursion starts at the last time step $T$:
+\begin{equation}
+  J_T^*(p(x_T)) = \Exp_{x_T} \left[\frac{1}{2} x_T\T \SC_T x_T \right]
+  = \Exp_{x_T} \left[\frac{1}{2} x_T\T \VM_T x_T \right]
+\end{equation}
+
+In each recursion step, the stage cost is evaluated and the quadratic optimal
+cost-to-go is expanded according to the state-transition function
+$x_{\i+1}=Ax_\i+Bu_\i+\dist_\i$. This amounts to
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{multline}
+  J_\i(p(x_\i), u_\i) = \Exp_{x_\i,\dist_\i} \left[
+    \frac{1}{2} x_\i\T \SC_\i x_\i
+  + \frac{1}{2} u_\i\T \CC_\i u_\i
+  + \frac{1}{2} x_i\T A\T \VM_{\i+1} Ax_\i
+  + \frac{1}{2} u_i\T B\T \VM_{\i+1} B u_i
+  + \frac{1}{2} \dist_\i\T \VM_{\i+1} \dist_\i \right. \\ \left.
+  + x_i\T A\T \VM_{\i+1} B u_\i
+  + x_i\T A\T \VM_{\i+1} \dist_\i
+  + u_\i\T B\T \VM_{\i+1} \dist_\i
+  \vphantom{\frac{1}{2}}\right],
+\end{multline}
+\end{fullwidth}
+which we can simplify by using $\dist_\i \sim\N(0,\DC)$ and $p(x_\i) = \N(x_\i;
+\hat x_\i, \Sigma_{\i|\i})$, where the belief over $x_\i$ is generated by a
+Kalman filter, to
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{multline}
+  J_\i(p(x_\i), u_\i) =
+    \frac{1}{2} \hat x_\i\T \SC_\i \hat x_\i
+  + \frac{1}{2} u_\i\T \CC_\i u_\i
+  + \frac{1}{2} \hat x_i\T A\T \VM_{\i+1} A\hat x_\i
+  + \frac{1}{2} u_i\T B\T \VM_{\i+1} B u_i
+  + \hat x_i\T A\T \VM_{\i+1} B u_\i \\
+  + \frac{1}{2}\tr\left[ \SC_\i \Sigma_{\i|\i} \right]
+  + \frac{1}{2}\tr\left[ A\T \VM_{\i+1} A \Sigma_{\i|\i} \right]
+  + \frac{1}{2}\tr\left[ \VM_{\i+1} \DC \right],
+\end{multline}
+\end{fullwidth}
+where the last two summands can be reformulated to $\tr[(A \Sigma_{\i|\i}A\T +
+\DC) \VM_{\i+1}] = \tr[\Sigma_{\i+1|\i} \VM_{\i+1}] $ by noting that
+cyclic permutations are allowed inside of the trace.
+
+Taking the derivative to find the optimal input $u_i^*$ results in the same
+calculations as for the non-stochastic case because the cost of uncertainty
+does not depend on the input $u_i$:
+\begin{equation}
+  \frac{\de}{\de u_\i} J_\i(p(x_\i), u_\i) =
+    u_\i\T \CC_\i
+  + u_i\T B\T \VM_{\i+1} B
+  + \hat x_i\T A\T \VM_{\i+1} B
+\end{equation}
+Equating to zero and solving for $u_\i$ results in the optimal solution
+\begin{equation}
+  \label{eq:sto-dp-policy}
+  u_\i^*(p(x_\i)) = -\left(\CC_\i + B\T \VM_{\i+1} B\right)\inv B\T \VM_{\i+1}
+  A \hat x_\i,
+\end{equation}
+which is the optimal control policy. Inserting the optimal policy back into the
+cost gives
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{multline}
+  J^*_\i(p(x_\i)) =
+    \frac{1}{2} \hat x_\i\T \left(
+    \SC_\i + A\T \VM_{\i+1} A
+    - A\T \VM_{\i+1} B \left(\CC_\i + B\T \VM_{\i+1} B\right)\inv B\T \VM_{\i+1}
+A
+    \right) \hat x_\i \\
+  + \frac{1}{2}\tr\left[ \SC_\i \Sigma_{\i|\i} \right]
+  + \frac{1}{2}\tr\left[ \Sigma_{\i+1|\i} \VM_{\i+1} \right],
+\end{multline}
+\end{fullwidth}
+which we can simplify to
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{align}
+  J^*_\i(p(x_\i)) &=
+    \frac{1}{2} \hat x_\i\T \VM_{\i} \hat x_\i
+  + \frac{1}{2}\tr\left[ \SC_\i \Sigma_{\i|\i} \right]
+  + \frac{1}{2}\tr\left[ \Sigma_{\i+1|\i} \VM_{\i+1} \right]\\
+  &= \Exp_{x_\i} \left[
+  \frac{1}{2} x_\i\T \VM_{\i} x_\i \right]
+  - \frac{1}{2}\tr\left[ \Sigma_{\i|\i} \VM_{\i} \right]
+  + \frac{1}{2}\tr\left[ \SC_\i \Sigma_{\i|\i} \right]
+  + \frac{1}{2}\tr\left[ \Sigma_{\i+1|\i}  \VM_{\i+1} \right],
+\end{align}
+\end{fullwidth}
+using the usual Riccati recursion
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \VM_\i = \SC_\i + A\T \VM_{\i+1} A
+    - A\T \VM_{\i+1} B \left(\CC_\i + B\T \VM_{\i+1} B\right)\inv B\T \VM_{\i+1}
+A.
+\end{equation}
+\end{fullwidth}
+
+If we initialize the Riccati recursion with a modified, but equivalent, cost for
+the last time step
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  J_T^*(p(x_T)) =  \Exp_{x_T} \left[\frac{1}{2} x_T\T \VM_T x_T \right]
+  + \frac{1}{2}\tr\left[ \Sigma_{T|T} \VM_T \right]
+  - \frac{1}{2}\tr\left[ \Sigma_{T|T} \VM_T \right],
+\end{equation}
+\end{fullwidth}
+we obtain the value function as
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  J^*_0(p(x_0)) = \Exp_{x_0} \left[
+  \frac{1}{2} x_0\T \VM_0 x_0 \right]
+  + \frac{1}{2}\tr\left\{ \sum_{j=0}^{T-1} \left[\Sigma_{j+1|j} -
+  \Sigma_{j+1|j+1}
+  \right] \VM_{j+1} \right\} + \frac{1}{2}\tr\left\{
+  \sum_{j=0}^{T} \SC_j\Sigma_{j|j} \right\}.
+\end{equation}
+\end{fullwidth}
+
+\section{Derivation of the Nonparametric EKF}
+\label{sec:appendix-a}
+
+The standard Kalman filter (KF) \cite{Kalman:1960:New} can be found in many
+textbooks, \eg \cite[\ts4.3]{Sarkka:2013:Bayesian}. We consider a linear
+autonomous system
+\begin{align}
+  x_{\tk+1} &= A_\tk x_\tk + \dist_\tk \\
+  y_{\tk} &= C x_\tk + \noise_\tk
+\end{align}
+where we assume time-varying dynamics $A_\tk$, time-invariant
+measurement $C$, Gaussian disturbance $\dist_\tk\sim\N(0,\DC)$ and noise
+$\noise_\tk\sim\N(0,\NC)$. In the standard formulation, the Kalman filter
+maintains a belief over the state $p(x_\tk) = \N(x_\tk;m_\tk,P_\tk)$ by
+prediction and update steps as follows:
+\begin{align}
+  \bar m_{\tk+1} &= A_\tk m_\tk \\
+  \bar P_{\tk+1} &= A_\tk P_\tk A_\tk\T + \DC \\
+  m_{\tk+1} &= \bar m_{\tk+1} + \bar P_{\tk+1} C\T
+  \left(C\bar P_{\tk+1}C\T + R\right)\inv (y_{\tk+1} - C \bar m_{\tk+1})\\
+  P_{\tk+1} &= \bar P_{\tk+1} - \bar P_{\tk+1} C\T
+  \left(C\bar P_{\tk+1}C\T + R\right)\inv C \bar P_{\tk+1},
+\end{align}
+where $\bar m_{\tk+1}$, $\bar P_{\tk+1}$ denote the predicted belief, and
+$m_{\tk+1}$, $P_{\tk+1}$ denote the updated belief after measuring $y_{\tk+1}$.
+
+Starting from the standard equations, we derive a general multi-step formulation
+of the classic KF. From there, state augmentation with an infinite-dimensional
+weight vector gives the expected result.
+
+\subsection{Derivation of the Multi-Step KF Formulation}
+Assuming that the result of the KF and the Gaussian process framework should be
+identical under certain circumstances, we wish to transform the KF to a
+formulation with full Gram matrix. Therefore, the prediction and update steps
+have to be combined to
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{subequations}
+\begin{align}\label{eq:single-step}
+  P_1 &= \left(A_0 P_0 A_0\T + \DC\right) - \left(A_0 P_0 A_0\T + \DC\right)C\T
+  S_1\inv C \left(A_0 P_0 A_0\T + \DC\right) \\
+  S_1 &= C\left(A_0 P_0 A_0\T + \DC\right)C\T + \NC.
+\end{align}
+\end{subequations}
+\end{fullwidth}
+The same can be done for the second time step, but it is beneficial to introduce
+a compact notation for the predictive covariance first:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{multline}
+\label{eq:compact-notation}
+  \left(A_1  P_1  A_1\T + \DC\right)\\
+  =
+  \left(A_1  \left[
+  \left(A_0 P_0 A_0\T + \DC\right) - \left(A_0 P_0 A_0\T + \DC\right)C\T
+    S_1\inv  C \left(A_0 P_0 A_0\T + \DC\right)\T
+  \right]  A_1\T + \DC\right)\\
+  =
+  \underbrace{A_1 \left(A_0 P_0 A_0\T + \DC\right) A_1\T + \DC}_{\ce g_{11}}
+   -
+   \underbrace{A_1 \left(A_0 P_0 A_0\T + \DC\right)}_{\ce g_{10}}C\T
+  (C\underbrace{\left(A_0 P_0 A_0\T + \DC\right)}_{\ce g_{00}}C\T + \NC)\inv
+  C \underbrace{\left(A_0 P_0 A_0\T + \DC\right) A_1\T}_{\ce g_{01}}
+  \\
+  =
+  g_{11} - g_{10}C\T\left(C g_{00} C\T + \NC\right)\inv C g_{01}.
+\end{multline}
+\end{fullwidth}
+Using the compact notation and defining $S_2$ analogously to $S_1$, we can
+write the two-step update as
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  P_2 = \left(g_{11} - g_{10}C\T S_1\inv C g_{01}\right)
+  - \left(g_{11} - g_{10}C\T S_1\inv C g_{01}\right)
+  C\T S_2\inv C \left(g_{11} - g_{10}C\T S_1\inv C g_{01}\right)
+\end{equation}
+\vspace{-\baselineskip}
+\begin{multline}
+  \hphantom{P_2} = g_{11} - g_{10}C\T S_1\inv C g_{01}
+  - g_{11}C\T S_2\inv C g_{11}
+  - g_{10}C\T S_1\inv C g_{01} C\T S_2\inv C g_{10}C\T S_1\inv C g_{01}\\
+  + g_{11}C\T S_2\inv C g_{10}C\T S_1\inv C g_{01}
+  + g_{10}C\T S_1\inv C g_{01} C\T S_2\inv C g_{11}
+\end{multline}
+\vspace{-\baselineskip}
+\begin{equation}
+  \hphantom{P_2} = g_{11} - \begin{bmatrix}g_{10}C\T & g_{11}C\T\end{bmatrix}
+  \underbrace{
+  \begin{bmatrix}
+  S_1\inv + S_1\inv C g_{01} C\T S_2\inv C g_{10}C\T S_1\inv &
+  -S_1\inv C g_{01} C\T S_2\inv \\
+  -S_2\inv C g_{10} C\T S_1\inv&
+  S_2\inv
+  \end{bmatrix}
+  }_{\ce G\inv}
+  \begin{bmatrix}C g_{01} \\ C g_{11}\end{bmatrix}.
+\end{equation}
+\end{fullwidth}
+Application of Schur's lemma gives
+\begin{equation}
+  G
+  =
+  \begin{bmatrix}
+  C g_{00} C\T + \NC &
+  C g_{01} C\T \\
+  C g_{10} C\T &
+  C g_{11} C\T + \NC
+  \end{bmatrix}.
+\end{equation}
+
+Assuming full state measurement ($C=I$) for compactness of notation, the
+two-step update is
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{multline}
+  P_2 = g_{11}
+  - \begin{bmatrix}g_{10}\T & g_{11}\T\end{bmatrix}
+    \begin{bmatrix}
+  g_{00}+ \NC &
+  g_{01}\\
+  g_{10}&
+  g_{11} + \NC
+  \end{bmatrix}\inv
+  \begin{bmatrix}g_{01} \\ g_{11}\end{bmatrix}\\
+  =
+  A_1 \left(A_0 P_0 A_0\T + \DC\right) A_1\T + \DC
+  - \begin{bmatrix}A_1 \left(A_0 P_0 A_0\T + \DC\right) &
+    \left( A_1 \left(A_0 P_0 A_0\T + \DC\right) A_1\T + \DC \right)\end{bmatrix}
+    \\
+    \cdot
+  \begin{bmatrix}
+  \left(A_0 P_0 A_0\T + \DC\right) + \NC &
+  \left(A_0 P_0 A_0\T + \DC\right) A_1\T \\
+  A_1 \left(A_0 P_0 A_0\T + \DC\right) &
+  \left( A_1 \left(A_0 P_0 A_0\T + \DC\right) A_1\T + \DC \right) + \NC
+  \end{bmatrix}\inv
+  \begin{bmatrix}\left(A_0 P_0 A_0\T + \DC\right) A_1\T \\
+  \left( A_1 \left(A_0 P_0 A_0\T + \DC\right) A_1\T + \DC \right)\end{bmatrix},
+  \label{eq:twostep-result}
+\end{multline}
+\end{fullwidth}
+which already looks similar to GP inference. We can now generalize this two-step
+result to the general form by building the Gram matrix according to
+\begin{equation}
+  G = \cF\cP\cF\T + \cF\cQ\cF\T + \cR,
+\end{equation}
+where the individual parts are
+\begin{equation}
+    \cP = \begin{bmatrix} A_0 P_0 A_0\T & 0 \\ 0 & 0 \end{bmatrix} \qq
+    \cQ = \left(\DC\otimes I\right) \qq
+    \cR = \left(\NC\otimes I\right)
+\end{equation}
+of appropriate size, depending on the current time $\tk$.
+The multi-step state transition matrix
+\begin{equation}
+  \cF = \begin{bmatrix}
+    I & 0 & 0 & \cdots & 0 \\
+    A_1 & I & 0 &  \cdots & 0 \\
+    A_2 A_1  & A_2 & I &  \cdots & 0 \\
+    \vdots & & & \ddots & \\
+    A_{\tk-1} \cdots A_1 & A_{\tk-1} \cdots A_2 & \cdots & & I \\
+    \end{bmatrix}
+\end{equation}
+is needed to shift the initial covariance and drift covariances through
+time. Put together, this results in
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  P_\tk = \cF_{\tk-1,:}(\cP + \cQ)\cF_{\tk-1,:}\T - \cF_{\tk-1,:}(\cP + \cQ)\cF
+(\cF\cP\cF\T
+  + \cF\cQ\cF\T + \cR)\inv \cF\T (\cP + \cQ) \cF_{\tk-1,:}\T.
+\end{equation}
+\end{fullwidth}
+A more compact notation can be achieved by using $\cF\inv$ to obtain
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \label{eq:cov-prediction}
+  P_\tk = \cF_{\tk-1,:}(\cP + \cQ)\cF_{\tk-1,:}\T - \cF_{\tk-1,:}(\cP +
+  \cQ)(\cP + \cQ + \cF\inv\cR\cF^{-\intercal})\inv (\cP + \cQ) \cF_{\tk-1,:}\T.
+\end{equation}
+\end{fullwidth}
+Calculating the mean prediction is done analogously:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \label{eq:mean-prediction}
+  m_\tk = \cF_{\tk-1,0} A_0 m_0 + \cF_{\tk-1,:}(\cP + \cQ)(\cP + \cQ +
+  \cF\inv\cR\cF^{-\intercal})\inv (\mathbf{y}_{1:t} - \cC\cF_{:,0} A_0 m_0),
+\end{equation}
+\end{fullwidth}
+with $\cC = (C\otimes I)$ of appropriate size.
+
+\subsection{Augmenting the State}
+
+Instead of tracking only the state covariance, in the GP setting also the
+dynamics function has to be inferred. The system equations of the nonlinear
+system are now
+\begin{subequations}
+\label{eq:system-equations-augmented}
+\begin{align}
+  x_\tk &= f( x_{\tk-1}) + \dist_{\tk-1}  & \dist_{\tk-1}&\sim\N(0,\DC)\\
+  y_\tk &= C x_\tk + \noise_\tk  & \noise_\tk&\sim\N(0,\NC),
+\end{align}
+\end{subequations}
+where $f \sim \GP(0,\k)$. The inference in this model can be done through the
+EKF with augmented state. We adopt the weight-space view with $f(x) =
+\Phi(x) \t$ \cite[\ts2.1]{Rasmussen.Williams:2006:Gaussian} to augment the state
+with the infinite-dimensional weight vector $\t$:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  z = \begin{pmatrix}x\\\t\end{pmatrix} \qq
+  \Sigma = \begin{pmatrix} P & \Sigma^{x\t} \\ \Sigma^{\t x} & \Sigma^{\tt}
+\end{pmatrix} \qq
+  J_A = \begin{pmatrix} \frac{\de \bar f}{\de x} & \frac{\de \bar f}{\de \t} \\
+  0 & I \end{pmatrix}
+  = \begin{pmatrix} A & \Phi \\
+  0 & I \end{pmatrix},
+\end{equation}
+\end{fullwidth}
+where, in \eqref{eq:twostep-result}, the original $x$ is replaced by the
+augmented $z$, $P$ by $\Sigma$ and $A$ by $J_A$.
+
+Choosing $C=[I, 0]$, so that $C$ recovers the original states from the augmented
+state vector, we obtain, after calculations similar to those above, a Gram
+matrix with additional terms including feature functions and the prior on them:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  G^\star = G + \begin{pmatrix}
+  \Phi_0 \Sigma^{\t\t}_0 \Phi_0\T&
+  \Phi_0 \Sigma^{\t\t}_0 \left(\Phi_0\T A_1\T + \Phi_1\T\right)\\
+  \left(A_1 \Phi_0 + \Phi_1 \right) \Sigma^{\t\t}_0 \Phi_0\T &
+  \left(A_1 \Phi_0 + \Phi_1 \right) \Sigma^{\t\t}_0 \left(\Phi_0\T A_1\T +
+\Phi_1\T\right)
+\end{pmatrix},
+\end{equation}
+\end{fullwidth}
+where $\Phi_0 = \Phi(y_0)$, etc. At this point it is important to note that the
+infinite inner product $\Phi_\tk \Sigma^{\t\t}_0 \Phi_{\tk'}\T$ corresponds to
+an evaluation of the kernel
+\begin{equation}
+  \Phi(y_\tk) \Sigma^{\t\t}_0 \Phi(y_{\tk'})\T = \sum_i^\infty \phi_i(y_\tk)
+  \Sigma^{\t\t}_{0,ii}  \phi_i(y_{\tk'}) = \k(y_\tk,y_{\tk'}).
+\end{equation}
+This means we can write the Gram matrix as
+\begin{equation}
+  G^\star = G + \begin{pmatrix}
+  \k_{00} &
+  \k_{00} A_1\T + \k_{01}\\
+  A_1 \k_{00} + \k_{10} &
+  A_1 \k_{00} A_1 \T + \k_{10} A_1\T + A_1
+  \k_{01} + \k_{11}
+\end{pmatrix},
+\end{equation}
+where we have written $\k_{\cdot\cdot}$ for $\k(y_\cdot,y_\cdot)$ to save
+space. In total, the Gram matrix is then
+\begin{equation}
+  G^{\star} = \cF\cP\cF\T + \cF\cQ\cF\T + \cF\cK\cF\T + \cR,
+\end{equation}
+with $\cK = \k(\mathbf{y}_{0:\tk-1},\mathbf{y}_{0:\tk-1})$. Since inference is
+more
+compact and numerically stable if we absorb $\cF$ into the Gram matrix as in
+Equation~\eqref{eq:cov-prediction}, we define
+\begin{equation}
+  \cG = \cP + \cQ + \cK + \cF\inv\cR\cF^{-\intercal}.
+\end{equation}
+Inference is done according to
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{subequations}
+\begin{align}
+  P_\tk &= \cF_{\tk-1,:}(\cP + \cQ + \cK)\cF_{\tk-1,:}\T - \cF_{\tk,:}(\cP + \cQ
+  + \cK)\cG\inv (\cP + \cQ + \cK) \cF_{\tk,:}\T \\
+  \Sigma^{x\t}_\tk &= \left(\Sigma^{\t x}_\tk\right)\T = \cF_{\tk-1,:}
+\Phi(\mathbf{y}_{0:t-1})
+  \Sigma^{\t\t}_0
+  - \cF_{\tk-1,:} \left( \cP + \cK + \cQ \right)
+  \cG\inv\Phi(\mathbf{y}_{0:t-1})\Sigma^{\t\t}_0 \\
+  \Sigma^{\t\t}_\tk &= \Sigma^{\t\t}_0 -
+\Sigma^{\t\t}_0\Phi(\mathbf{y}_{0:t-1})\T
+  \cG\inv\Phi(\mathbf{y}_{0:t-1})\Sigma^{\t\t}_0
+\end{align}
+\end{subequations}
+\end{fullwidth}
+for the covariance and
+\begin{subequations}
+\begin{align}
+  m_\tk &= \cF_{\tk-1,0} m_0 + \cF_{\tk-1,:}(\cP + \cQ + \cK)\cG\inv
+(\mathbf{y}_{1:t} - \cC\cF_{:,0} A_0 m_0) \\
+  \hat\t_\tk &= \Sigma^{\t\t}_0\Phi(\mathbf{y}_{0:t-1})\T
+\cG\inv(\mathbf{y}_{1:t} - \cC\cF_{:,0} A_0 m_0)
+\end{align}
+\end{subequations}
+for the mean.
+
+\section{Gradients and Hessians of Dynamics Functions}
+\label{sec:appendix-B}
+
+\subsection{Neural Network Basis Functions}
+
+The neural network dynamics function is
+\begin{equation}
+  f(x) = \sum_{i=1}^F v_i \s(w_i(x-b_i)), \qq \s(a) = \frac{1}{1 + e^{-a}},
+\end{equation}
+with the well-known derivatives of the logistic
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \frac{\de}{\de a} \s(a) = \s(a)(1-\s(a)),
+  \qq \frac{\de^2}{\de a^2} \s(a) =
+    \s(a)\left(1-\s(a)\left(3-2\s(a)\right)\right).
+\end{equation}
+\end{fullwidth}
+
+The gradient of $f(x)$ is
+\begin{equation}
+  \nabla f(x) =
+  \begin{bmatrix}
+    \sum_{i=1}^F v_i w_i \s(w_i(x-b_i))(1-\s(w_i(x-b_i))) \\
+    \s(w_1(x-b_1)) \\
+    \vdots \\
+    \s(w_F(x-b_F)) \\
+    v_1 (x-b_1) \s(w_1(x-b_1)) (1 - \s(w_1(x-b_1))) \\
+    \vdots \\
+    v_F (x-b_F) \s(w_F(x-b_F)) (1 - \s(w_F(x-b_F)))
+  \end{bmatrix}.
+\end{equation}
+
+The Hessian, written in parts, using $a_i = w_i x + b_i$, is:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{subequations}
+  \begin{align}
+    \nabla^2_x f(x) &= \sum_{i=1}^F v_i w_i^2 \s(a_i)(1-\s(a_i)(3-2\s(a_i))) \\
+    \nabla_x \nabla_{v_i} f(x) &= w_i\s(a_i)(1-\s(a_i)) \\
+    \nabla_x \nabla_{w_i} f(x) &= v_i\s(a_i)(1-\s(a_i))
+      + (x-b_i)w_i v_i \s(a_i)(1-\s(a_i))((1-2\s(a_i))\\
+    \nabla_{v_i} \nabla_{v_i} f(x) &= 0 \\
+    \nabla_{v_i} \nabla_{w_i} f(x) &= (x-b_i)\s(a_i)(1-\s(a_i)) \\
+    \nabla_{w_i} \nabla_{w_i} f(x) &=
+      v_i(x-b_i)^2\s(a_i)(1-\s(a_i)(3-2\s(a_i))).
+  \end{align}
+\end{subequations}
+\end{fullwidth}
+
+\subsection{Fourier Basis Functions}
+
+The Fourier approximation to the dynamics function has the form
+\begin{equation}
+  f(x) = \sqrt{\frac{2}{F}}\sum_{i=1}^{\nicefrac{F}{2}} v_{2i-1}
+    \sin(\w_{2i-1} x) + v_{2i} \cos(\w_{2i} x).
+\end{equation}
+
+The gradient of $f(x)$ is
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \nabla f(x) =
+  \begin{bmatrix}
+    \sqrt{\frac{2}{F}}\sum_{i=1}^{\nicefrac{F}{2}}
+      v_{2i-1} \w_{2i-1} \cos(\w_{2i-1} x)
+      - v_{2i} \w_{2i} \sin(\w_{2i} x) \\
+    \sqrt{\frac{2}{F}} \sin(\w_{1} x)\\
+    \sqrt{\frac{2}{F}} \cos(\w_{2} x)\\
+    \vdots \\
+    \sqrt{\frac{2}{F}} \sin(\w_{F-1} x)\\
+    \sqrt{\frac{2}{F}} \cos(\w_{F} x)
+  \end{bmatrix}.
+\end{equation}
+\end{fullwidth}
+
+The Hessian, written in parts,
+using $c = \sqrt{\nicefrac{2}{F}}$ for normalization, is:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{subequations}
+  \begin{align}
+    \nabla^2_x f(x) &= c \sum_{i=1}^{\nicefrac{F}{2}}
+      - v_{2i-1} \w_{2i-1}^2 \sin(\w_{2i-1} x)
+      - v_{2i} \w_{2i}^2 \cos(\w_{2i} x) \\
+    \nabla_x \nabla_{v_i} f(x) &= \begin{cases}
+    c \omega_i \cos(\omega_i x) & \q i \q \text{odd}\\
+    - c \omega_i \sin(\omega_i x) & \q i \q \text{even}
+    \end{cases}\\
+    \nabla_{v_i} \nabla_{v_i} f(x) &= 0.
+  \end{align}
+\end{subequations}
+\end{fullwidth}
+
+\subsection{Radial Basis Functions}
+
+With radial basis function features, the dynamics function is
+\begin{equation}
+  f(x) = \sum_{i=1}^F v_i \exp\left(-\frac{(x-c_i)^2}{2\lambda^2}\right).
+\end{equation}
+
+The gradient of $f(x)$ is
+\begin{equation}
+  \nabla f(x) =
+  \begin{bmatrix}
+    \sum_{i=1}^F v_i \exp\left(-\frac{(x-c_i)^2}{2\lambda^2}\right)
+      \frac{(c_i-x)}{2\lambda^2}\\
+    \exp\left(-\frac{(x-c_1)^2}{2\lambda^2}\right) \\
+    \vdots \\
+    \exp\left(-\frac{(x-c_F)^2}{2\lambda^2}\right)
+  \end{bmatrix}.
+\end{equation}
+
+The Hessian, written in parts, is:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{subequations}
+  \begin{align}
+    \nabla^2_x f(x) &= \sum_{i=1}^F v_i
+      \exp\left(-\frac{(x-c_i)^2}{2\lambda^2}\right)
+      \left[
+        \left(\frac{c_i - x}{2\lambda^2}\right)^2 - \frac{1}{\lambda^2}
+      \right]
+      \\
+    \nabla_x \nabla_{v_i} f(x) &= \exp\left(-\frac{(x-c_i)^2}{2\lambda^2}\right)
+        \frac{c_i - x}{2\lambda^2}\\
+    \nabla_{v_i} \nabla_{v_i} f(x) &= 0
+  \end{align}
+\end{subequations}
+\end{fullwidth}

@@ -1,0 +1,117 @@
+\chapter{Conclusions and Outlook}
+\label{ch:conclusions}
+
+\lettrine{T}{he goal} of this thesis was to combine regression models from
+machine learning with discrete-time optimal control methods. More specifically,
+the work focused on two areas: Using quasiperiodic Gaussian process models for
+disturbance forecasting and correction, and extending the approximate dual
+control framework to nonlinear regression methods.
+
+\subsubsection{Nonparametric Disturbance Correction}
+
+Unlike many other control methods, model-based optimal control enables us to
+easily use predictions of the environment alongside predictions of the system
+dynamics to enhance control performance. As accurate models are often difficult
+to obtain, it is useful to train regression models on the disturbance and
+use their predictions as disturbance forecast in this setting. Especially
+promising in this regard are periodic disturbances because the knowledge about
+their periodicity makes it possible to predict them for a sufficiently long
+time period into the future.
+
+We developed a framework for the use of quasiperiodic Gaussian processes in
+model predictive control (Chapter~\ref{ch:periodic-error-correction}). The
+imperfection of the real world makes it necessary to relax the assumption of a
+strictly periodic model to a quasiperiodic one. Making use of results from
+reference tracking model predictive control, the predictions of the periodic
+disturbance can be incorporated into the controller. This turns extrapolation
+power into control performance.
+
+We applied the quasiperiodic reference tracking controller to the telescope
+guiding problem for astronomical imaging
+(Chapter~\ref{ch:predictive-error-correction-for-telescopes}).
+Periodic prediction models are promising for obtaining high pointing
+precision in telescopes, since many of them suffer from periodic errors due to
+revolving gears. We showed on different experiments, both in simulation and on
+hardware, how the telescope system benefits from the use of a quasiperiodic
+Gaussian process model.
+
+Building on the promising results from the telescope experiments, we
+implemented a software solution for the periodic error correction as part of an
+existing telescope guiding software
+(Chapter~\ref{ch:software-implementation-phd-guiding}). As a robust
+implementation, capable of working on different telescope setups, has different
+requirements than a laboratory setup on a single telescope, the algorithm was
+substantially improved to cope with these requirements.
+
+\subsubsection{Nonlinear Dual Control}
+
+Dual control can be seen as the ultimate goal of reinforcement learning, since
+it solves the famous exploration-exploration trade-off optimally---in theory.
+While many approximate solutions were developed over time, only a few maintain
+all important aspects of the original idea. One promising example is the
+approximate dual control approach by quadratic expansion of the cost function,
+considering uncertainty \cite{Tse.Bar-Shalom:1973:Actively}. However, this
+method so far was only used for linear systems.
+
+After giving a modern review of the original method
+(Chapter~\ref{ch:introduction-to-dual-control}), we expanded the framework to
+nonlinear regression frameworks that are frequently used in modern machine
+learning (Chapter~\ref{ch:nonlinear-extensions-to-dual-control}). With the help
+of nonlinear model predictive control and iterative linearization, we developed
+a nonlinear version of the approximate dual control algorithm that is now
+capable of acting near-optimally in nonlinear dynamical systems. All features
+of dual control, especially the value of information, are preserved. This
+becomes more and more important the larger the model gets. On simulated
+experiments, we showed that the described method works in different regression
+settings: parametric nonlinear regression, Gaussian process regression and
+neural network regression.
+
+When facing practical problems, the quadratic cost structure most dual
+control approaches are built on is often limiting. Therefore, we developed
+a method to apply dual control to systems of economic cost structure
+(Chapter~\ref{ch:dual-control-for-buildings}). Since the original dual control
+approximation works for quadratic systems only, we introduced a quadratic
+reference tracking scheme on top of a linear-cost reference. With this
+extension, we were able to apply dual control to a classic building control
+problem, showing a significant improvement in average performance in a
+simulated, uncertain environment.
+
+\subsubsection{Future Directions of Nonlinear Dual Control}
+
+With the growing complexity of modern regression models, it is important to be
+selective about which parts of the model to identify. At a certain level of
+complexity, it is not sufficient to enforce identification by penalizing
+uncertainty in the cost function because this approach is likely to invest
+significant control effort in the identification of irrelevant features of the
+system. Instead, dual control can guide exploration to those parts of the model
+that are important.
+
+However, with the existing methods this is only possible to a limited degree.
+The high computational demand approximate dual control methods are facing
+poses a challenge---which is prohibitive in many settings. It is desirable to
+develop methods that can be run at faster time-scales than existing ones,
+enabling dual control for systems with fast dynamics and challenging sampling
+times.
+
+While parallelization and increasing computing power will likely alleviate this
+challenge, they will not necessarily solve it. Therefore, it is important to
+think of ways to make approximate dual control applicable without sacrificing
+the important features. One potential way to go is time-scale separation: Long
+horizons are important for preemptive learning, but they also increase the
+computational cost. Therefore, the different aspects of dual control could be
+treated separately, according to their time-scales: While acting cautiously
+under high uncertainty is important for the low-level execution, the
+explorative features are not. At the same time, in order to retain the value of
+information, the exploration needs to be planned ahead much further.
+This could be accomplished by using larger time steps for exploration planning
+than for low-level control, so that planning ahead remains computationally
+feasible.
+
+Another interesting direction is the investigation of alternative
+approximations derived from different principles than dynamic programming. In
+the current formulation, the approximate dual control method for nonlinear
+systems consists of a combination of model predictive control to find a nominal
+trajectory and dynamic programming to evaluate the cost. This complicates the
+algorithm and makes it computationally expensive. An improved method based on
+model predictive control only could potentially simplify and improve the
+presented approach.

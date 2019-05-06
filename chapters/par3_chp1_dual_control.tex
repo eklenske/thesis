@@ -1,0 +1,845 @@
+\chapter{Introduction to Dual Control}
+\label{ch:introduction-to-dual-control}
+
+\lettrine{T}{he idea} of performing simultaneous identification and control by
+applying optimal control to both states and parameters of uncertain dynamical
+systems is today also known as \emph{Bayesian reinforcement learning}
+\cite{Poupart.Vlassis.ea:2006:Analytic} in the machine learning community.
+Originally it was termed \emph{dual control} by \textcite{Feldbaum:1960:Dual},
+who already noted that dual control algorithms will be computationally expensive
+due to the necessary numerical integration and optimization. Both algorithmic
+and---by the standards of the time---computational complexity have limited its
+widespread application.
+
+While adaptive control only considers past observations, dual control also
+takes future observations into account. This approach mitigates a number of
+drawbacks of other techniques for dealing with uncertain parameters. Robust
+controllers \cite{Zhou.Doyle:1998:Essentials}, for example, may limit
+performance due to their worst-case design; adaptive controllers based on
+\emph{certainty equivalence} \cite[\ts11.2]{Kumar.Varaiya:1986:Stochastic}
+can lead to failure in cases of high uncertainty because the uncertainty of
+the parameters is not taken into account but only their mean estimates. One
+approach to incorporate the uncertainty is stochastic optimal control
+\cite{Astrom:1970:Introduction}, where the uncertain parameters are marginalized
+out while calculating the optimal controller. This leads to smaller control
+signals when facing uncertainty (``cautious control''), but it can also result
+in the so-called ``turn-off phenomenon'' \cite{Hughes.Jacobs:1974:Turn-off} if
+the uncertainties are large: The control is scaled down towards zero, and, as a
+result, the system never acts or learns.
+
+For many systems, more excitation leads to better estimation, but also to worse
+control performance. Dual control attempts to find a compromise between
+exploration and exploitation by taking the future effect of current actions
+\margincite{Wittenmark:1975:Active}%
+\margincite{Chapelle.Li:2011:Empirical}%
+\margincite{Dearden.Friedman.ea:1999:Model}%
+\margincite{Kolter.Ng:2009:Near-Bayesian}%
+\margincite{Srinivas.Krause.ea:2010:Gaussian}%
+into account. In episodic settings, where the control problem is
+re-instantiated repeatedly with unchanged system dynamics, comparably simple
+notions of exploration can succeed. For example, assigning an \emph{exploration
+bonus} to uncertain options \citenum{Wittenmark:1975:Active}, or
+acting optimally under one sample from the current probabilistic model of the
+environment \citenum{Chapelle.Li:2011:Empirical}, can perform well
+\citenum{Dearden.Friedman.ea:1999:Model, Kolter.Ng:2009:Near-Bayesian,
+Srinivas.Krause.ea:2010:Gaussian}. Such approaches, however, do not model the
+effect of actions on future beliefs, which limits the potential for the
+balancing of exploration and exploitation. This issue is most drastic in the
+non-episodic case, the control of a single trial. Here, the controller can not
+hope to start over, and exploration must be carefully controlled to avoid
+disaster.
+
+A principled solution to this problem is offered by the dual control framework:
+A probabilistic belief over the dynamics and the environment can be used not
+\margincite{Poupart.Vlassis.ea:2006:Analytic}%
+\margincite{Hennig:2011:Optimal}%
+\margincite{Feldbaum:1960:Dual}%
+\margincite{Aoki:1967:Optimization}%
+\margincite{Sternby:1976:Simple}%
+\margincite{Jacobs.Patchell:1972:Caution}%
+\margincite{Wittenmark:1975:Active}%
+\margincite{Tse.Bar-Shalom.ea:1973:Wide-sense}%
+\margincite{Filatov.Unbehauen:2004:Adaptive}%
+\margincite{Wittenmark:1995:Adaptive}%
+just to simulate and plan trajectories, but also to reason about changes to the
+belief from future observations and their influence on future decisions. An
+elegant formulation is to combine the physical state with the parameters of the
+probabilistic model into an augmented dynamical description, which is then
+controlled jointly. Due to the inference, the augmented system invariably has
+nonlinear and uncertain dynamics, causing the optimal controller to have
+prohibitive computational cost---even for finite state spaces and discrete time
+\citenum{Poupart.Vlassis.ea:2006:Analytic}, all the more for continuous space
+and time \citenum{Hennig:2011:Optimal}.
+
+When the learning as response to current actions is taken into account, the
+turn-off characteristic vanishes in favor of explorative
+behavior.~\citenum{Feldbaum:1960:Dual}\iss It was shown that this kind of
+problem is intractable \linebreak
+\citenum[\ts III.3]{Aoki:1967:Optimization}, except for a
+few comparably simple systems, \eg \citenum{Sternby:1976:Simple}. Therefore, a
+variety of approximate formulations of the dual control problem have been
+developed. This includes the introduction of perturbation signals
+\citenum{Jacobs.Patchell:1972:Caution}, exploration bonuses
+\citenum{Wittenmark:1975:Active}, series expansion of the loss
+function \citenum{Tse.Bar-Shalom.ea:1973:Wide-sense} or modifications of the
+loss function \citenum[\ts4]{Filatov.Unbehauen:2004:Adaptive}. A comprehensive
+overview of dual control methods is given by
+\citetext{Wittenmark:1995:Adaptive}. A historical side-effect of these numerous
+treatments is that the meaning of the term ``dual control'' has evolved over
+time, and is now applied both to the fundamental concept of optimal exploration,
+and to methods that only approximate this notion to varying degree.
+
+\footnotetext[1]{This feature is sometimes also called
+``investigation'' or ``probing'' in the dual control literature.}%
+\margincite{Bar-Shalom.Tse:1976:Caution}%
+\margincite{Meier:1966:Combined}%
+\margincite{Larsson:2014:Application-oriented}%
+\margincite{Rathousky.Havlena:2011:MPC-Based}%
+\margincite{Genceli.Nikolaou:1996:New}%
+\margincite{Marafioti.Bitmead.ea:2014:Persistently}%
+\margincite{Tse.Bar-Shalom:1973:Actively}%
+However, many approximate methods are too simple to retain all features of dual
+control: \emph{caution}, the downscaling of control signals when facing high
+uncertainty; \emph{exploration}\footnotemark, the excitation of the system when
+cautious control does not learn fast enough; and the \emph{value of
+information}, the selective exploration of system parameters that are important
+for future performance of the system.~\citenum{Bar-Shalom.Tse:1976:Caution}\iss
+An approximation derived by \citeauthor{Tse.Bar-Shalom.ea:1973:Wide-sense}
+\citenum{Tse.Bar-Shalom.ea:1973:Wide-sense, Meier:1966:Combined} is conceptually
+close to optimal dual control and retains all three of the aforementioned
+features of dual control. In the following sections we provide a brief
+introduction to this method.
+
+Dual control has regained attention over the past few years, but in many cases
+exploration bonuses are used and explicitly added to the control cost.
+Other methods include constraining the minimal information gain
+\citenum{Larsson:2014:Application-oriented, Rathousky.Havlena:2011:MPC-Based}
+and persistent excitation
+\citenum{Genceli.Nikolaou:1996:New, Marafioti.Bitmead.ea:2014:Persistently}
+to maintain the parameter knowledge.
+The approach that will be proposed in the following chapter focuses on
+maintaining the value of information, which can not be expressed through
+exploration bonuses or excitation signals, but is one of the key benefits of
+dual controllers.
+
+In this chapter, we review the algorithm for approximate dual control
+introduced by \citetext{Tse.Bar-Shalom:1973:Actively} in a mildly simplified
+fashion: While the original algorithm is based on differential dynamic
+programming (DDP) \cite{Mayne:1966:Second-order}, we view the algorithm in the
+light of the more recent iterative linear quadratic Gaussian (iLQG) framework
+\cite{Todorov.Li:2005:Generalized}, where applicable. We first introduce the
+general stochastic optimal control problem
+(Section~\ref{sec:stochastic-optimal-control}), present the dual control
+approach and show how the algorithm works (Section~\ref{sec:appr-dual-contr}).
+Finally, we show the effect of the dual control approach on the cost function
+(Section~\ref{sec:toy-experiment}).
+
+\section{Model and Notation}
+\label{sec:stochastic-optimal-control}
+
+In this chapter, we consider the discrete-time, finite-horizon stochastic
+optimal control problem of the form
+\begin{subequations}
+\begin{alignat}{3} \label{eq:system}
+  x_{\tk+1} &= A_\tk x_\tk + B_\tk u_\tk + \dist_\tk \q&&\text{(state
+    dynamics)}\\
+  y_\tk   &= Cx_\tk + \noise_\tk       \q&&\text{(observation model)},
+\end{alignat}
+\end{subequations}
+with dynamics matrices $A_\tk\in\Re^{\ns\times \ns}$ and $ B_\tk\in
+\Re^{\ns\times 1}$. At time $\tk\in\{0,\dots,T\}$, $x_\tk\in\Re^\ns$ is the
+state and $\dist_\tk \sim \N(0,\DC)$ is a Gaussian disturbance. The control
+input is denoted $u_\tk$; for simplicity we assume scalar $u_\tk\in\Re$
+throughout. Measurements $y_\tk\in\Re^\no$ are observations of $x_\tk$,
+corrupted by Gaussian noise $\noise_\tk\sim\N(0,\NC)$. The generative model thus
+reads $p(x_{\tk+1}\g x_\tk,u_\tk) = \N(x_{\tk+1};A_\tk x_\tk + B_\tk u_\tk,\DC)$
+and $p(y_\tk\g x_\tk)=\N(y_\tk;Cx_\tk,\NC)$, with a linear map
+$C\in\Re^{\no\times \ns}$. Trajectories are vectors
+$\mathbf{x}=[x_0,\dots,x_T]$, and analogously for $\mathbf{u},\mathbf{y}$. We
+occasionally use the subset notation
+$\mathbf{y}_{\i_1:\i_2}=[y_{\i_1},\dots,y_{\i_2}]$.
+
+We further assume that dynamics matrices $A_\tk$, $B_\tk$ are not known, but
+are described by a Gaussian distribution over their elements. To simplify
+notation, we reshape the elements of $A_\tk$ and $B_\tk$ into a parameter
+vector $\t_\tk=[\operatorname{vec}(A_\tk);
+\operatorname{vec}(B_\tk)]\in\Re^{(\np+1)\ns}$,
+and define the reshaping transformations $A(\t_\tk): \t_\tk \mapsto A_\tk$ and
+$B(\t_\tk): \t_\tk \mapsto B_\tk$.
+
+The key observation in dual control is that both the states $x$ and the
+parameters $\t$ are subject to uncertainty and can therefore be subsumed in an
+\emph{augmented state} $z_\tk\T = [ x_\tk\T, \t_\tk\T] \in\Re^{n_x+n_\t}$
+\citenum{Feldbaum:1960:Dual}. Even though the source of uncertainty is different
+for states and parameters (the states are uncertain due to stochasticity, while
+the parameters are uncertain due to ignorance), both can then be dealt with in
+the form of a joint probability density $p(z)=\N(z;\hat z,\Sigma)$. In this
+framework, the dual control problem reduces to stochastic optimal control of the
+augmented system. In this notation, the optimal exploration-exploitation
+trade-off---relative to the probabilistic priors defined above---can be written
+compactly as optimal control of the augmented system with a new observation
+model $p(y_\tk\g z_\tk)=\N(y_\tk;\tilde{C}z_\tk,\NC)$ using $\tilde{C}=[C,0]$
+and a cost analogous to Equation~(\ref{eq:1}).
+
+Even for the linear and deterministic case, including the augmented state $z$
+results in a nonlinear system because $\theta$ and $x$ interact
+multiplicatively
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \label{eq:augmented-system}
+  z_{\tk+1} =
+  \begin{pmatrix}
+    x_{\tk+1}\\\theta_{\tk+1}
+  \end{pmatrix} =
+  \begin{pmatrix}
+    A(\theta_\tk) & 0 \\ 0 & I
+  \end{pmatrix}z_\tk +
+  \begin{pmatrix}
+    B(\theta_\tk) \\ 0
+  \end{pmatrix}u_\tk
+  \eqqcolon
+  \tilde f(z_\tk, u_\tk).
+\end{equation}
+\end{fullwidth}
+The parameters $\t$ are assumed to be deterministic, but not known to the
+controller. This uncertainty is captured by the distribution $p(\t)$
+representing the lack of knowledge.
+
+At initialization, $\tk=0$, the belief over
+states and parameters is assumed to be Gaussian
+\begin{equation}
+\label{eq:13}
+  p\left(\begin{bmatrix}x_0\\ \t_0 \end{bmatrix}\right)
+  = \N\left(
+  \begin{bmatrix}
+    x_0\\ \t_0
+  \end{bmatrix}
+  ;
+  \begin{bmatrix}
+    \hat x_0\\ \hat{\t}_0
+  \end{bmatrix}
+  ,
+  \begin{bmatrix}
+    \Sigma^{xx} _0 & \Sigma^{x\t} _0 \\ \Sigma^{\t x} _0 & \Sigma^{\t\t} _0
+  \end{bmatrix} \right).
+\end{equation}
+
+For simplicity, we also assume that the dynamics do not change over time:
+$p(\t_{\tk+1}\g\t_\tk)=\delta(\t_{\tk+1}-\t_\tk)$. This could be relaxed to an
+autoregressive model $p(\t_{\tk+1}\g\t_\tk)=\N(\t_{\tk+1};\Theta\t_\tk,\Xi)$,
+which would give additive terms in the derivations below. Throughout, we assume
+a finite horizon with terminal time $T$ and a quadratic cost function in states
+and control inputs
+\begin{equation}
+  \label{eq:cost}
+  \cL(\mathbf{x},\mathbf{u}) = \sum_{\tk=0}^{T} (x_\tk - \xref_\tk)\T
+  \SC_\tk (x_\tk - \xref_\tk) + \sum_{\tk=0}^{T-1} u_\tk\T \CC_\tk u_\tk
+  ,
+\end{equation}
+where $\mathbf{x}^\text{ref} = [\xref_0,\dots,\xref_T]$ is a
+target trajectory. $\SC_\tk$ and $\CC_\tk$
+define state and control cost, they can be time-varying. The goal, in line with
+the standard in both optimal control and reinforcement learning, is to find the
+control sequence $\mathbf{u}$ that, at each $\tk$, minimizes the \emph{expected
+cost} to the horizon
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \label{eq:1}
+  J_\tk(\mathbf{u}_{\tk:T-1},p(z_\tk)) = \Exp_{z_\tk}\left[ (x_\tk -
+  \xref_\tk)\T \SC_\tk
+  (x_\tk - \xref_\tk) + u_\tk\T \CC_\tk u_\tk +
+  J_{\tk+1}(\mathbf{u}_{\tk+1:T-1},p(z_{\tk+1}))\g p(z_\tk)\right],
+\end{equation}
+\end{fullwidth}
+where past measurements $\mathbf{y}_{1:t}$, controls $\mathbf{u}_{1:t-1}$ and
+prior information $p(z_0)$ are incorporated into the belief $p(z_\tk)$, relative
+to which the expectation is calculated. Effectively, $p(z_\tk)$ serves as a
+bounded rationality approximation to the true information state
+\cite[\ts6.5]{Kumar.Varaiya:1986:Stochastic}. Since the equation above is
+recursive, the final element of the cost is
+\begin{equation}
+    J_{T}(p(z_T)) = \Exp_{z_{T}}\left[ (x_T -\xref _T)\T \SC_T (x_T -
+    \xref_T) \g p(z_T) \right].
+\end{equation}
+The optimal control sequence
+minimizing this cost will be denoted $\mathbf{u}^*$, with associated cost
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \label{eq:optimal-cost}
+  J^*_\tk(p(z_\tk)) = \min_{u_\tk}\Exp_{z_\tk}\left[ (x_\tk -
+\xref_\tk)\T \SC_\tk
+(x_\tk - \xref_\tk) +
+    u_\tk\T \CC_\tk u_\tk + J_{\tk+1} ^*(p(z_{\tk+1}))\g p(z_\tk) \right].
+\end{equation}
+\end{fullwidth}
+This recursive formulation, if written out, amounts to alternating minimization
+and expectation steps. As $u_\tk$ influences $x_{\tk+1}$ and $y_{\tk+1}$, it
+enters the latter expectation nonlinearly. Classic optimal control is the base
+case with known $\t$, where $\mathbf{u}^*$ can be found by dynamic programming
+\margincite{Bellman:1957:Dynamic}%
+\margincite{Bertsekas:2005:Dynamic}%
+\citenum{Bellman:1957:Dynamic, Bertsekas:2005:Dynamic}.
+
+Unfortunately, the dynamics for the augmented system are nonlinear, even if the
+original physical system is linear. This is because inference is always
+nonlinear and future states influence future parameter beliefs, and vice versa.
+A first problem, not unique to dual control, is thus that inference is not
+analytically tractable, even under the Gaussian assumptions
+\margincite{Feldbaum:1960:Dual}\margincite{Aoki:1967:Optimization}%
+above.~\citenum{Feldbaum:1960:Dual, Aoki:1967:Optimization}\iss The standard
+remedy is to use approximations, most popularly the linearization of the
+extended Kalman filter \cite[\ts5.2]{Sarkka:2013:Bayesian}. This gives a
+sequence of approximate Gaussian likelihood terms. But even incorporating these
+Gaussian likelihood terms into future dynamics is still intractable because it
+involves expectations over rational polynomial functions, whose degree increases
+with the length of the prediction horizon. The following section provides an
+intuition for this complexity, but also the descriptive power of the augmented
+state space.
+
+\begin{remark}
+Several authors have previously pointed out another
+possible construction of an augmented state: incorporating not the actual
+\emph{value} of the parameters $\theta_\tk$ in the state, but the parameters
+$\hat\t_\tk$, $\Sigma^{\t\t}_\tk$ of a Gaussian belief $p(\theta_\tk\g
+\hat\t_\tk,\Sigma^{\t\t}_\tk) =
+\N(\theta_\tk;\hat\t_\tk,\Sigma^{\t\t}_\tk)$ over
+\margincite{Kappen:2011:Optimal}\margincite{Hennig:2011:Optimal}%
+them.~\citenum{Kappen:2011:Optimal, Hennig:2011:Optimal}\iss The advantage of
+this is that, if the state $x_\tk$ is observed without noise, these belief
+parameters follow stochastic differential equations---more precisely,
+$\Sigma^{\t\t}_\tk$ follows an ordinary (deterministic) differential equation,
+while $\hat\t_\tk$ follows a stochastic differential equation---and it can then
+be attempted to solve the control problem for these differential equations more
+directly.
+
+While it can be a numerical advantage, this formulation of the augmented state
+also has some drawbacks, which is why we have here decided not to adopt it:
+First, the simplicity of the directly formalizable SDE vanishes in the POMDP
+setting, \ie if the state is observed with noise. If the state
+observations are corrupted, the exact belief state is not a Gaussian process,
+so that the parameters $\hat\t_\tk$ and $\Sigma^{\t\t}_\tk$ have no natural
+meaning. Approximate methods can be used to retain a Gaussian belief (and we
+will do so below), but the dynamics of $\hat\t_\tk$, $\Sigma^{\t\t}_\tk$ are
+then intertwined with the chosen approximation (\ie changing the approximation
+changes their dynamics), which causes additional complication. More generally
+speaking, it is not entirely natural to give differing treatment to the state
+$x_\tk$ and parameters $\theta_\tk$: Both state and parameters should thus be
+treated within the same framework; this also allows extending the framework to
+the case where also the parameters do follow an SDE.
+\end{remark}
+
+\subsection{An Educational Problem}
+\label{sec:toy-problem}
+To provide intuition for the sheer complexity of optimal dual control, consider
+the perhaps simplest possible example: the linear, scalar system
+\begin{equation}
+  \label{eq:toy-example}
+  x_{\tk+1} = a x_\tk + b u_\tk + \dist_\tk,
+\end{equation}
+with target $\xref_\tk=0$ and noise-free observations ($\NC=0$). If $a$ and $b$
+are known, the optimal $u_\tk$ for a one-step horizon is
+\begin{equation}
+  u_{\tk,\text{oracle}}^* = -\frac{a b x_\tk}{\CC + b^2}.
+\end{equation}
+
+Let now parameter $b$ be uncertain, with current belief $p(b) = \N(b; \mbk,
+\sbk)$ at time $\tk$. The na\"ive option of simply replacing the parameter with
+the current mean estimate is known as \emph{certainty equivalence} (CE)
+control\footnote{Sometimes this is also called \emph{enforced} certainty
+equivalence.} in the dual control literature \cite{Bar-Shalom.Tse:1974:Dual}.
+The resulting control law is
+\begin{equation}
+  u_{\tk,\CE}^* = -\frac{a\mbk x_\tk}{\CC + \mbk^2}.
+\end{equation}
+CE control is used in many adaptive control settings in practice, but has
+substantial
+deficiencies: If the uncertainty is large, the mean is not a good estimate, and
+the CE controller might apply completely useless control signals. This often
+results in large overshoots at the beginning.
+
+A more elaborate solution is to compute the expected cost $\Exp_{b}[ x_{\tk+1}^2
++ \CC u_\tk ^2 \g \mbk, \sbk]$ and then optimize for $u_\tk$. This gives
+\emph{optimal feedback} (OF) or ``cautious'' control
+\cite{Dreyfus:1964:Some}\footnote[][3mm]{Dreyfus
+used the term ``open loop optimal feedback'' for his approach, a term that is
+misleading to modern readers because it is in fact a closed-loop algorithm.}:
+\begin{equation}\label{eq:2}
+  u_{\tk,\OF}^* = -\frac{a\mbk x_\tk}{\CC + \sbk + \mbk^2}.
+\end{equation}
+This control law reduces control actions in cases of high parameter
+uncertainty. This mitigates the main drawback of the CE controller, but leads to
+another problem: Since the OF controller decreases control with rising
+uncertainty, it can entirely prevent learning. Consider the posterior on
+$b$ after observing $x_{\tk+1}$, which is a closed-form Gaussian because
+$u_\tk$ is chosen by the controller and has no uncertainty
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}\label{eq:belief-update}
+  p(b\g \mbkp, \sbkp) = \N(b; \mbkp, \sbkp) = \N\left(b;
+  \frac{\sbk \uk (b \uk + \dist_\tk) + \mbk \DC}{\uk^2 \sbk + \DC}, \frac{\sbk
+  \DC}{\uk^2\sbk + \DC}\right)
+\end{equation}
+\end{fullwidth}
+($b$ shows up in the fully observed $x_{\tk+1}=ax_\tk + bu_\tk+\dist_\tk$). The
+dual effect here is that the updated $\sbkp$ depends on $\uk$. For large values
+of $\sigma_\tk ^2$, according to \eqref{eq:2},  $u_{\tk,\OF}^*\to 0$, and thus
+the
+uncertainty does not change  ($\sigma_{\tk+1} ^2 \approx \sigma_\tk ^2$). The
+system will never learn or act, even for large $x_\tk$. This is known as the
+``turn-off phenomenon'' \cite{Bar-Shalom:1981:Stochastic}.
+
+However, the derivation for OF control above amounts to minimizing
+Equation~\eqref{eq:1} for the myopic controller, where the horizon is only a
+single step long ($T=1$). Therefore, OF control is indeed optimal for this
+case. By the optimality principle \cite[\ts1.3]{Bertsekas:2005:Dynamic}, this
+means that Equation~\eqref{eq:2} is the optimal solution for the last step of
+\emph{every} controller. But since it does not show any form of exploration or
+``probing'' \cite{Bar-Shalom.Tse:1976:Caution}, a myopic controller is not
+enough to show the dual properties.
+
+In order to expose the dual features, the horizon has to be at least of length
+$T=2$. Since the optimal controller follows Bellman's principle, the solution
+proceeds backwards. The solution for the second control action $u_1$ is
+identical to the solution of the myopic controller \eqref{eq:2}; but after
+applying the first control action $u_0$, the belief over the unknown parameter
+$b$ is updated according to Equation~\eqref{eq:belief-update}, resulting in
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \label{eq:preposterior-control}
+  u_{1}^* = -\left[\CC +
+    \frac{\sigma_0 ^2 \DC}{u_0 ^2\sigma_0 ^2
+      +  \DC} + \left(\frac{\sigma_0 ^2 u_0 (b u_0 + \dist_0) + \hat b_0
+        \DC}{u_0 ^2 \sigma_0 ^2 + \DC}\right)^2\right]^{-1}
+    \left[a \frac{\sigma_0 ^2 u_0 (b u_0 +
+      \dist_0) + \hat b_0 \DC}{u_0 ^2 \sigma_0 ^2 + \DC} x_{1}\right].
+\end{equation}
+\end{fullwidth}
+
+Inserting into Equation~(\ref{eq:optimal-cost}) gives
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \label{eq:3}
+  \begin{split}
+    J_0^*(x_0) &= \min_{u_0} \Exp_{x_0}\left[x_0^2 + \CC
+      u_0^2 + \min_{u_1} \Exp_{x_1} \left[ x_1^2 + \CC u_1 ^2
+        +\Exp_{x_2}[x_2 ^2]\right]\right] \\
+    &= \min_{u_0} \left[ x_0^2 + \CC u_0^2 +
+      \Exp_{\dist_0,b} \left[ x_1^2 + \CC (u_1 ^*) ^2
+        +\Exp_{\dist_1,b}\left[(x_1+b u_1 ^* + \dist_1)^2\g \hat b_1, \sigma^2_1
+    \right] \g \hat b_0, \sigma^2_0\right]\right].
+  \end{split}
+\end{equation}
+\end{fullwidth}
+Since $u_1 ^*$ from Equation~(\ref{eq:preposterior-control}) is already a
+rational function of fourth order in $b$, and shows up quadratically in
+Equation~(\ref{eq:3}), the relevant expectations can not be computed in closed
+form.~\cite[\ts III.3]{Aoki:1967:Optimization}\iss For this simple case, it
+is possible to compute the optimal dual control by performing the expectation
+through sampling $b, \dist_0, \dist_1$ from the prior.
+Figure~\ref{fig:sampling_uncertain_b} shows such samples of $\cL(u_0)$
+(\ref*{p:dc-sam-sample}; one sample highlighted \ref*{p:dc-sam-highlight}), and
+the empirical expectation $J(u_0)$ (\ref*{p:dc-sam-average}). Each sample
+is a rational function of even leading order. The average dual cost has its
+minima not at zero, but to either side of it, reflecting the optimal amount of
+exploration in this particular belief state.
+
+While it is not out of the question that the Monte Carlo solution can remain
+feasible for larger horizons, we are not aware of successful solutions for
+continuous state spaces (however, see the paper by
+\textcite{Poupart.Vlassis.ea:2006:Analytic} for a sampling solution to Bayesian
+reinforcement learning in discrete spaces, including notes on the considerable
+computational complexity of this approach). The next section describes a
+tractable \emph{analytic} approximation that does not involve samples.
+
+\begin{figure}
+  \setlength\figurewidth{0.95\columnwidth}
+  \setlength\figureheight{0.618\figurewidth}
+  \footnotesize
+    \inputTikZ{dual_control_sampled_b}
+  \caption[Computing the $T=2$ dual cost for the simple
+    system.]{Computing the $T=2$ dual cost for the simple
+    system of Equation~\eqref{eq:toy-example}. Costs $\cL(u_0)$ under
+    optimal control on $u_1$ for sampled parameter $b$ (\ref*{p:dc-sam-sample};
+    one sample highlighted \ref*{p:dc-sam-highlight}) and the expected dual cost
+    $J(u_0)$ (\ref*{p:dc-sam-average}). The optimal $u_0 ^*$
+    lies at the minimum of the dashed green line.}
+  \label{fig:sampling_uncertain_b}
+\end{figure}
+
+\section{Approximate Dual Control for Linear Systems}
+\label{sec:appr-dual-contr}
+
+In \citeyear{Tse.Bar-Shalom.ea:1973:Wide-sense},
+\citeauthor{Tse.Bar-Shalom.ea:1973:Wide-sense} proposed a method
+\cite{Tse.Bar-Shalom.ea:1973:Wide-sense} and an
+algorithm \cite{Tse.Bar-Shalom:1973:Actively} for approximate dual (AD) control,
+based on the series expansion of the cost-to-go. This is related to differential
+dynamic programming for the control of nonlinear dynamic systems
+\cite{Mayne:1966:Second-order}. It separates into three conceptual steps, where
+the first step represents the outer loop of the algorithm. Together they
+yield what, from a contemporary perspective, amounts to a structured
+Gaussian approximation to Bayesian RL:
+\begin{dingautolist}{172}
+\item Perform a one-step prediction for an arbitrary control input $u_\tk$ (as
+  opposed to the analytically computed control inputs for later steps). Optimize
+  $u_\tk$ numerically by repeated computation of steps \ding{173} and \ding{174}
+  at varying $u_\tk$ to minimize the approximate cost.
+\item Find an optimal trajectory for the deterministic part of the system under
+  the mean model: the \emph{nominal} trajectory under certainty equivalent
+  control. For linear systems this is easy (see details below), for nonlinear
+  ones it poses a nontrivial, but feasible nonlinear model predictive control
+  problem
+  \margincite{Allgower.Badgwell.ea:1999:Nonlinear}%
+  \margincite{Diehl.Ferreau.ea:2009:Efficient}%
+  \citenum{Allgower.Badgwell.ea:1999:Nonlinear,
+  Diehl.Ferreau.ea:2009:Efficient}.
+\item Around the nominal trajectory obtained in step \ding{173}, construct a
+  local \emph{quadratic expansion} that approximates the effects of future
+  observations. Because the expansion is quadratic, an optimal control law
+  relative to the deterministic system---the \emph{perturbation control}---can
+  be constructed by dynamic programming. Plugging this perturbation control into
+  the residual dynamics of the approximate quadratic system gives an
+  approximation for the cost-to-go. This step adds the cost of uncertainty to
+  the deterministic control cost.
+\end{dingautolist}
+These three steps will be explained in detail in the subsequent sections.
+The interplay between the different parts of the algorithm is shown in
+Figure~\ref{fig:the-algorithm}.
+
+\begin{figure*}
+  \begin{center}
+  \inputTikZ{the_algorithm}
+  \end{center}
+  \caption[Flowchart of the approximate dual control algorithm.]{Flowchart of
+the approximate dual control algorithm to show the overall structure. Adapted
+from \citenum{Tse.Bar-Shalom:1973:Actively}. The left cycle is the outer loop
+of the algorithm, performing the nonlinear optimization.}
+  \label{fig:the-algorithm}
+\end{figure*}
+
+The main purpose of this algorithm is to reduce the highly nonlinear
+optimization algorithm in multiple dimensions (control inputs over the horizon)
+to nonlinear optimization of only the first control input, by approximating the
+cost-to go, in an iterative fashion. While retaining the possibility to
+explore, this approach alleviates the curse of dimensionality. This procedure
+also circumvents the difficulties of the receding horizon approach in the dual
+control setting, as noted by \textcite{Marafioti.Bitmead.ea:2014:Persistently}:
+If the excitation is planned for future time steps, in closed-loop the
+excitation can be delayed at every time instance, leading to non-explorative
+behavior. Forcing the excitation to occur in the first step, this problem
+does not arise.
+
+\subsection{The Nominal Reference Trajectory}
+\label{sec:cert-equiv-contr}
+
+The certainty equivalent model uses the assumption that the uncertain parameters
+$\theta$ coincide with their most likely value, the mean $\hat\t$ of
+$p(\theta)$, and that the system propagates deterministically without noise.
+This means that the nominal parameters $\bar\t$ are the current mean values
+$\hat\t$, which decouples $\theta$ entirely from $x$ in
+Equation~(\ref{eq:augmented-system}), and the optimal control for the finite
+horizon problem can be computed by dynamic programming (DP)
+\cite{Bertsekas:2005:Dynamic}, yielding an optimal linear control law
+\begin{equation}
+  \un_\i^* = -\left(\Bn\T \bar\VM_{\i+1} \Bn +
+    \CC_\i\right)\inv \Bn\T \left[ \bar\VM_{\i+1} \An \bar{x}_\i +
+\bar\vv_{\i+1}
+\right],
+\end{equation}
+where we have momentarily simplified notation to
+$\An=A(\bar{\theta}_\i),\Bn=B(\bar{\theta}_\i),\,\forall \i$ because the
+$\bar{\theta}_\i$  are constant. The $\bar\VM_{\i}$ and $\bar\vv_{\i}$ for
+$\i=t+2,\dots,T$ are defined and computed recursively by the Riccati
+equation
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{subequations}
+  \label{eq:dp-nominal}
+  \begin{xalignat}{2}
+    \bar\VM_\i &= \An\T\left(\bar\VM_{\i+1}-\bar\VM_{\i+1}\Bn\left(\Bn\T
+        \bar\VM_{\i+1} \Bn
+        + \CC_\i\right)\inv \Bn\T \bar\VM_{\i+1} \right) \An + \SC_\i &
+\bar\VM_T &= \SC_T\\
+    \bar\vv_\i &= \An\T\left(\bar\vv_{\i+1}-\bar\VM_{\i+1}\Bn\left(\Bn\T
+        \bar\VM_{\i+1} \Bn + \CC_\i\right)\inv \Bn\T
+    \bar\vv_{\i+1} \right) - \SC_\i \xref_\i & \bar\vv_T &= -\SC_T \xref_T,
+  \end{xalignat}
+\end{subequations}
+\end{fullwidth}
+where $\mathbf{\xref}$ is the reference trajectory to be followed. This CE
+controller gives the \emph{nominal trajectory} of inputs
+$\bar{\mathbf{u}}_{\tk+1:T-1}$ and states $\bar{\mathbf{x}}_{\tk+2:T}$, from the
+time after the first prediction until the end of the horizon. The true future
+trajectory is subject to stochasticity and uncertainty, but the deterministic
+nominal trajectory $\bar{\mathbf{x}}$, with its optimal control
+$\bar{\mathbf{u}}^*$ and associated nominal cost $\bar{J}^*_\tk =
+\cL(\bar{\mathbf{x}}_{\tk:T},\bar{\mathbf{u}}^* _{\tk:T-1})$ provides a base,
+relative to which an approximation will be constructed.
+
+\subsection{Quadratic Expansion Around the Nominal Trajectory}
+\label{sec:quadr-expans-around}
+
+The central idea of AD control is to project the nonlinear objective
+$J_\tk(\mathbf{u}_{\tk:T-1}, p(z_\tk))$ of Equation~(\ref{eq:1}) onto a
+quadratic, by locally linearizing around the nominal trajectory
+$\bar{\mathbf{x}}$ and maintaining a joint Gaussian belief.
+
+To do so, we introduce small perturbations around nominal cost, states, and
+control: $\dJ_\i = J_\i - \Jn_\i, \dz_\i = z_\i - \zn_\i,$ and $\du_\i = u_\i -
+\un_\i$.
+These perturbations arise from both the stochasticity of the state and the
+parameter uncertainty. Note that a change in the state results in a change of
+the control signal because the optimal control signal in each step depends on
+the state. Even though the origin of the uncertainties is different ($\dx$
+arises from stochasticity and $\dt$ from the lack of knowledge), both can be
+modeled in a joint probability distribution.
+
+Approximate Gaussian filtering ensures that beliefs over $\dz$ remain Gaussian:
+\begin{equation}
+  \label{eq:6}
+  p(\dz_\i) = \N\left[
+    \begin{pmatrix}
+      \dx_\i\\ \Delta \theta_\i
+    \end{pmatrix};
+    \begin{pmatrix}
+      \Delta \hat{x}_\i \\ 0
+    \end{pmatrix},
+    \begin{pmatrix}
+      \Sigma^{xx} _\i & \Sigma^{x\theta} _\i \\
+      \Sigma^{\theta x} _\i & \Sigma^{\theta\theta} _\i \\
+    \end{pmatrix} \right].
+\end{equation}
+Note that shifting the mean to the nominal trajectory does not change the
+uncertainty. Note further that the expected perturbation in the parameters is
+nil. This is because the parameters are assumed to be deterministic and are not
+affected by any state or input.
+
+Calculating the Gaussian filtering updates is in principle not possible for
+future measurements, since it violates the causality principle
+\cite[\ts1.4]{Glad.Ljung:2000:Control}. Nonetheless, it is possible to use the
+\emph{expected} measurements to simulate the effects of the future measurements
+on the uncertainty, since these effects are deterministic. This is sometimes
+referred to as \emph{preposterior} analysis
+\cite[\ts5A.3]{Raiffa.Schlaifer:1961:Applied}.
+
+The cost is approximated,
+to second order around the nominal trajectory, by
+\begin{equation}
+    J_\tk(\mathbf{u}_{\tk:T-1}, p(z_\tk)) = \Jn_\tk^* + \dJ_\tk
+    \approx \Jn_\tk^* + \Delta \tilde J_\tk,
+\end{equation}
+where $\bar J^*_\tk$ is the optimal cost for the nominal system and
+$\Delta\tilde{J}_\tk$ is the approximate additional cost from the perturbation:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \label{eq:5}
+    \Delta \tilde J_\tk \ce \Exp_{\mathbf{z}_{\tk:T}}\left[ \sum_{\i=\tk}^{T}
+\left\{ (\bar{x}_\i - \xref_\i)\T \SC_\i \dx_\i + \frac{1}{2}\dx_\i\T \SC_\i
+\dx_\i
+    \right\} + \sum_{\i=\tk}^{T-1} \left\{ \bar{u}_\i\T
+      \CC_\i \du_\i + \frac{1}{2}\du_\i\T \CC_\i \du_\i\right\}\right].
+\end{equation}
+\end{fullwidth}
+Although the uncertain parameters $\theta$ do not show up explicitly in the
+above equation, this step captures dual effects: The uncertainty of the
+trajectory $\Delta \mathbf{x}$ depends on $\theta$ via the dynamics. Higher
+uncertainty over $\theta$ at time $\i-1$ causes higher predictive uncertainty
+over $\Delta x_\i$ (for each $\i$), and thus increases the expectation of the
+quadratic term $\Delta x_\i\T \SC_\i \Delta x_\i$. Control that decreases
+uncertainty in $\theta$ can lower this approximate cost, modeling the benefit of
+exploration. For the same reason, Equation~\eqref{eq:5} is in fact still not a
+quadratic function and has no closed form solution. To make it tractable,
+\textcite{Tse.Bar-Shalom:1973:Actively} make the ansatz that all terms in the
+expectation of Equation~(\ref{eq:5}) can be written as $\nu_\i + \vv_\i\T \Delta
+z_\i + \nicefrac{1}{2}\Delta z_\i\T \VM_\i \Delta z_\i$. This amounts to
+applying dynamic programming on the perturbed system. Expectations over the cost
+under Gaussian beliefs on $\Delta z$ can then be computed analytically. Because
+all $\Delta\theta$ have zero mean, linear terms in these quantities vanish in
+the expectation.
+% \begin{equation}
+%   \label{eq:quadratic-ansatz}
+%   \Delta\tilde J_{\i+1}^*(\mathbf{y}_{1:j+1}) \approx g_{\i+1} + p_{\i+1}\T
+% \dhx_{j+1|j+1}
+%   + \frac{1}{2} \dhx_{j+1|j+1}\T K^{xx} _{\i+1} \dhx_{j+1|j+1} +
+%   \tr(\Sigma_{\i+1}K_{\i+1}).
+% \end{equation}
+This allows analytic minimization of the approximate optimal cost for each
+time step
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{multline}
+  \label{eq:optimal-perturbation-cost}
+  \Delta \tilde J_\i^*(p(z_\i)) = \underset{\du_\i}{\min} \left\{ (x_\i -
+  \xref_\i)\T \SC_\i
+  \dhx_{i|i} + \frac{1}{2}\dhx_{i|i}\T \SC_\i \dhx_{i|i} + u_\i\T \CC_\i \du_\i
+  + \frac{1}{2}\du_\i\T \CC_\i \du_\i
+    \right. \\ \left.
+    + \frac{1}{2} \tr\left[\SC_\i \Sigma^{xx}_{i|i}\right]
+    + \underset{\Delta z_{\i+1}}{\Exp} \left[
+  \Delta\tilde J_{\i+1}^*(\mathbf{y}_{1:i+1}) \g
+  p(z_\i) \right] \right\},
+\end{multline}
+\end{fullwidth}
+which is feasible given an explicit description of the Gaussian filtering
+update. It is important to note that, assuming extended Kalman filtering, the
+update to the mean from \emph{expected} future observations $y_{\i+1}$ is nil.
+This is because we expect to see measurements consistent with the current mean
+estimate. Nonetheless, the covariance changes depending on the control input
+$u_\i$, which is the dual effect.
+
+Following the dynamic programming equations for the perturbed problem (see
+Section~\ref{sec:dp-reference-tracking}), including the additional cost from
+uncer-
+
+\pagebreak[4]
+\noindent
+tainty (see Section~\ref{sec:dp-stochastic}), the resulting cost amounts to
+\cite{Tse.Bar-Shalom.ea:1973:Wide-sense}
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{multline}
+  \Delta\tilde{J}^*_\tk(p(z_\tk)) = \tilde\nu_{\tk+1}
+  + \tilde\vv_{\tk+1}\T\Delta\hat z_\tk +
+  \frac{1}{2}  \Delta\hat z_\tk\T \tilde\VM_{\tk+1}\Delta\hat z_\tk \\
+    + \frac{1}{2} \tr\left\{ \SC_T\Sigma^{xx}_{T|T} +
+    \sum_{\i=\tk}^{T-1} \left[\SC_\i
+    \Sigma^{xx}_{\i|\i} + (\Sigma_{\i+1|\i}
+    - \Sigma_{\i+1|\i+1} ) \tilde\VM_{\i+1}\right]\right\}.
+\end{multline}
+\end{fullwidth}
+Recalling that $\Delta \t=0$ and dropping the constant part, the dual cost can
+be approximated to be
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+\label{eq:dual-cost}
+  J^d_\tk = \frac{1}{2} \tr\left\{ \SC_T\Sigma^{xx}_{T|T} + \sum_{\i=\tk}^{T-1}
+    \left[ \SC_\i \Sigma^{xx}_{\i|\i} + (\Sigma_{\i+1|\i} - \Sigma_{\i+1|\i+1} )
+\tilde\VM_{\i+1} \right] \right\} \qq \left(=\Delta\tilde J_\tk^* -
+\const\right)
+\end{equation}
+\end{fullwidth}
+where the recursive equation
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \label{eq:dp-perturbed}
+    \tilde\VM_\i =
+\Ap_\i\T\left(\tilde\VM_{\i+1}-\tilde\VM_{\i+1}\Bp_\i\left(B_\i\T
+\tilde\VM^{xx}_{\i+1} B_\i
+        + U_\i\right)\inv \Bp_\i\T \tilde\VM_{\i+1} \right) \Ap_\i +
+\tilde\SC_\i
+\qqqq \tilde\VM_T =
+      \tilde\SC_T
+\end{equation}
+\end{fullwidth}
+is defined for the augmented system \eqref{eq:augmented-system}, with $\Ap_\i =
+\frac{\de}{\de z}\left.\tilde f\right|_{\bar z_i}$, $\Bp_\i = \frac{\de}{\de
+u}\left.\tilde f\right|_{\bar z_i}$ and $\tilde\SC_\i
+=\blkdiag(\SC_\i,0)$. The approximation to the overall cost is then $\Jn^*_\tk
++ J^d_\tk$, which is used as a cost function in the subsequent optimization
+procedure.
+
+\subsection{The Value of Information}
+\label{sec:value-of-information}
+
+The value of information refers to the fact that not all parameters of an
+uncertain model are equally important. If a certain parameter is important for
+the future control performance, it can be beneficial to identify this parameter
+and it might pay off to invest some energy in its identification. If a
+parameter does not have an important impact on the future cost, its
+identification can be neglected.
+
+The second-order approximation defines a quadratic reference
+tracking problem based on the CE trajectory. The resulting cost-to-go contains
+the dual term \eqref{eq:dual-cost}, which adds a cost that results from the
+uncertainty. The term $\SC_{\i+1} \Sigma^{xx}_{\i+1}$ represents the cost of the
+state uncertainty in future time steps. Since the source of this uncertainty is
+mostly control actions with uncertain outcome (such as an unknown gain),
+adding this term results in cautious behavior of the control system. The final
+term $\left[\Sigma_{\i+1|\i} - \Sigma_{\i+1}\right] \VM_{\i+1}$ is the most
+interesting part, as it represents an approximate measure for the value of
+information: It introduces a cost that weighs the covariance update
+$\left[\Sigma_{\i+1|\i} - \Sigma_{\i+1}\right]$ by the value matrix
+$\VM_{\i+1}$. This results in high cost for important parameters, indicated by
+large values in $\VM_{\i+1}$, that are learned during the process, indicated by
+large values in the covariance update. If the parameters are either
+unimportant, precisely known, or can not be learned, this additional cost term
+vanishes. Thus, this term in the dual cost is an approximation to the value of
+information.
+
+\subsection{Approximate Dual Control by Optimizing the Next Input}
+\label{sec:optim-curr-contr}
+
+The first step \ding{172} amounts to the outer loop of the overall algorithm. A
+gradient-free black-box optimization algorithm\footnote{We use \textsc{Matlab}'s
+\texttt{fminsearch} in our implementation.} is used to find the minimum of the
+overall cost function, including the dual cost. In every step, this algorithm
+proposes a control input $u_\tk$ for which the cost is evaluated.
+
+Depending on $u_\tk$, approximate filtering is carried out until the end of the
+horizon. The perturbation control is plugged into
+Equation~\eqref{eq:optimal-perturbation-cost} to give an analytic, recursive
+definition for $\tilde \VM_\i$, and an approximation for the dual cost
+$J_\tk^d$, as a function of the current control input $u_\tk$.
+
+Nonlinear optimization---through repetitions of steps \ding{173} and \ding{174}
+for proposed locations $u_\tk$---then yields an approximation to the optimal
+dual control $u_\tk^*$. Conceptually the simplest part of the algorithm, this
+outer loop dominates computational cost because for every location $u_\tk$ the
+whole machinery of \ding{173} and \ding{174} has to be evaluated.
+
+\section{A Simplistic Experiment}
+\label{sec:toy-experiment}
+
+The educational example from Section~\ref{sec:toy-problem} can be used to show
+qualitative differences between cost functions for different approximation
+techniques, highlighting some of the dual control features. We compare the
+approximate dual controller introduced in Section~\ref{sec:appr-dual-contr} and
+two other controllers: The certainty equivalent (CE) controller and a
+controller minimizing the sum of CE cost and a Bayesian exploration bonus (EB)
+\cite{Wittenmark:1975:Active}, which in this particular example amounts to
+\begin{equation}
+  l_\EB =  \tau \sigma^2,
+\end{equation}
+where $\tau$ is a scalar exploration weight and $\sigma$ is the uncertainty
+of the parameter $b$. The additional cost term $l_\EB$ is evaluated for
+the predicted parameter covariance. This type of controller is sometimes also
+counted towards dual control, while being referred to as \emph{explicit dual
+control}, where the dual features are obtained by a modified cost function
+\cite{Filatov.Unbehauen:2000:Survey}.
+
+For the noise-free linear system of Section~\ref{sec:toy-problem}, ($a = 1$
+(known), $b = 2$, $p(b)=\N(b; 1, 10)$, $\DC = 10^{-1}$, $\NC = 0$, $\SC = 1$,
+$\CC = 1$, $\HL=2$), Figure~\ref{fig:dc_uncertain_b} compares the cost
+functions of the different controllers and the sampling solution, which is
+close to the exact one, but only available for this very simple setup. All cost
+functions are shifted by an irrelevant constant. The CE cost is quadratic and
+indifferent about zero, \ie the location of zero has no influence on the shape
+of this cost. The EB ($\tau = 0.1$) gives additional structure near zero that
+encourages learning. While qualitatively similar to the dual cost, its global
+minimum is almost at the same location as that of CE. The dual control
+approximates the sampling solution much closer.
+
+\begin{figure}
+  \setlength\figurewidth{0.95\columnwidth}
+  \setlength\figureheight{0.618\figurewidth}
+  \footnotesize
+  \inputTikZ{dual_control_uncertain_b}
+  \caption[Comparison of sampling to three approximations.]{Comparison
+    of sampling (\ref*{p:dc-unc-sam}) to three approximations: CE
+    (\ref*{p:dc-unc-ce}), CE with Bayesian exploration bonus
+    (\ref*{p:dc-unc-beb}), and the approximate dual
+    control constructed in Section~\ref{sec:appr-dual-contr}
+    (\ref*{p:dc-unc-adc}).}
+  \label{fig:dc_uncertain_b}
+\end{figure}
+
+\section{Conclusion}
+
+In this chapter, we discussed the basic idea of dual control and the
+fundamental problem of intractability arising from nested expectations and
+minimizations. We presented an existing dual control approximation that is
+based on series-expansion of the cost-to-go function, and we analyzed the
+resulting cost function to highlight the value of information. In a simple
+experiment, we showed the effect of the approximate dual control algorithm on
+the cost function and compared it to other approaches as well as an almost
+exact sampling solution.
+
+The presented approximation to dual control is promising, but the original
+method only was applied to linear systems. This motivates the extension
+to nonlinear systems in the following chapter.

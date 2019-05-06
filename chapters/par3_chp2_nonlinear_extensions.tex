@@ -1,0 +1,706 @@
+\chapter{Nonlinear Dual Control}
+\label{ch:nonlinear-extensions-to-dual-control}
+
+\lettrine{O}{ptimal identification and control} of uncertain dynamical systems
+can only be achieved approximately. The preceding chapter gave an introduction
+to the topic of dual control and the approximation originally used by
+\textcite{Tse.Bar-Shalom.ea:1973:Wide-sense}. While this introductory work is
+relatively general, the explicit formulation \cite{Tse.Bar-Shalom:1973:Actively}
+only applies to linear systems.
+
+In this chapter, we extend the framework with ideas from contemporary machine
+learning. Specifically, we show the necessary changes to apply dual control to
+parametric linear regression in nonlinear feature spaces
+(Section~\ref{sec:param-nonl-syst}), and how this idea can be carried further to
+work non-parametrically in a Gaussian process context
+(Section~\ref{sec:nonp-gauss-proc}). We also give a simple, small-scale example
+for the use of this algorithm if the environment model is constructed with a
+feed-forward neural network rather than a Gaussian process
+(Section~\ref{sec:dual-control-of-feedforward-neural-networks}). Finally, we
+show experimental results from simulations to visualize the important features
+of the dual control framework (Section~\ref{sec:nonlinear-experiments}).
+
+\section{Extension to Nonlinear Models}
+\label{sec:extension-nonlinear-systems}
+
+Again, we consider a discrete-time, finite-horizon stochastic optimal control
+problem. In contrast to Section~\ref{sec:stochastic-optimal-control}, we
+consider a nonlinear system of the form
+\begin{subequations}
+\begin{alignat}{3}
+  x_{\tk+1} &= f_\tk(x_\tk, u_\tk; \t_\tk) + \dist_\tk \q&&\text{(state
+  dynamics)}\\
+  y_\tk   &= Cx_\tk + \noise_\tk       \q&&\text{(observation model)},
+\end{alignat}
+\end{subequations}
+with state $x_\tk\in\Re^\ns$ and input $u_\tk\in\Re$. The state is disturbed by
+zero-mean Gaussian noise $\dist_\tk$ of covariance $\DC$ and the measurement by
+$\noise_\tk$ of covariance $\NC$. The generative model is $p(x_{\tk+1}\g
+x_\tk,u_\tk) = \N(x_{\tk+1};f_\tk(x_\tk,u_\tk; \t_\tk),\DC)$ and $p(y_\tk\g
+x_\tk)=\N(y_\tk;Cx_\tk,\NC)$, with a linear map $C\in\Re^{\no\times\ns}$.
+
+The extension to nonlinear models is guided by the desire to use a number of
+regression frameworks popular in machine learning, such as, parametric general
+least-squares regression, nonparametric Gaussian process regression, or
+feed-forward neural networks (including the base case of logistic regression).
+
+\subsection{Parametric Nonlinear Models}
+\label{sec:param-nonl-syst}
+
+We begin with a generalized linear regression model of the form
+\begin{equation}\label{eq:linear-regression-system}
+  x_{\tk+1} = A(\t_\tk) \phi(x_\tk) + B(\t_\tk) u_\tk + \dist_\tk,
+\end{equation}
+where we use the same definition for the dynamics matrices $A(\t_\tk)$ and
+$B(\t_\tk)$ as for the linear system in
+Section~\ref{sec:stochastic-optimal-control}. The difference is that the states
+$x_\tk$ are now mapped into a nonlinear feature space. The nonlinear features
+$\phi(x)$ can in principle be any function (popular choices include sines and
+cosines, radial basis functions, sigmoids, polynomials and others), with the
+caveat that their structure crucially influences the properties of the model.
+From a modeling perspective, this approach is quite standard for machine
+learning. However, the dynamical learning setting requires an adaptation: To
+allow the modeling of higher-order dynamical systems, the original states must
+be included. This results in feature vectors of the form $\phi(x)\T = [ x\T,
+\varphi(x)\T]$, consisting of the linear representation, augmented by general
+features $\varphi(x)$. While we chose to model the input response linearly, it
+can of course also be included in the nonlinear feature space as $\phi(x,u)$,
+which complicates the equations below but otherwise will work as expected.
+
+The main challenge to apply the approximate dual control scheme introduced in
+Section~\ref{sec:appr-dual-contr} is that the optimal control for nonlinear
+dynamical systems can not be optimized in closed form using dynamic programming,
+not even for the deterministic nominal system. Instead, we find the nominal
+reference trajectory using nonlinear model predictive control
+\margincite{Allgower.Badgwell.ea:1999:Nonlinear}%
+\margincite{Diehl.Ferreau.ea:2009:Efficient}%
+\citenum{Allgower.Badgwell.ea:1999:Nonlinear, Diehl.Ferreau.ea:2009:Efficient}.
+This adds computational cost, and requires some care to achieve stable
+optimization performance for specific system setups.
+
+State filtering from observations is also more involved in the case of nonlinear
+dynamics. In the experiments reported below, we stayed within the extended
+Kalman filtering framework \cite[\ts5.2]{Sarkka:2013:Bayesian} to retain
+Gaussian beliefs over states and parameters. Other methods with this
+property will work similarly, this includes relatively standard options like
+unscented Kalman filtering \cite{Uhlmann:1995:Dynamic}, but also more recent
+developments in machine learning and probabilistic control, such as analytic
+moment propagation if the features $\varphi$ are selected accordingly
+\cite{Deisenroth.Rasmussen:2011:PILCO}.
+
+The final problem is the generalization of the dual cost formulation to the
+nonlinear dynamics. We take a relatively simplistic approach, which nevertheless
+turns out to work well. A linearization gives locally linear dynamics whose
+structure closely matches Equation~(\ref{eq:augmented-system}):
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \begin{split}
+    z_{\tk+1} &=
+    \begin{pmatrix}
+      \bar{x}_{\tk+1} + \Delta x_{\tk+1} \\\bar{\theta}_{\tk+1} +
+\Delta\theta_{\tk+1}
+    \end{pmatrix} =
+    \begin{pmatrix}
+      A(\theta_\tk) & 0 \\ 0 & I
+    \end{pmatrix}
+    \begin{pmatrix}
+      \phi(\bar{x}_\tk+\Delta x_\tk)\\ \bar{\theta}_\tk + \Delta\theta_\tk
+    \end{pmatrix}
+    +
+    \begin{pmatrix}
+      B(\theta_\tk) \\ 0
+    \end{pmatrix}u_\tk +
+    \begin{pmatrix}
+      \xi_\tk \\ 0
+    \end{pmatrix}\\
+    &\approx
+    \begin{pmatrix}
+      A(\bar\theta_\tk) & 0 \\ 0 & I
+    \end{pmatrix}
+    \begin{pmatrix}
+      \phi(\bar x_\tk)\\ \bar{\theta}_\tk
+    \end{pmatrix} +
+    \begin{pmatrix}
+      B(\bar\t_\tk) \\ 0
+    \end{pmatrix}u_\tk +
+    \begin{pmatrix}
+      \xi_\tk \\ 0
+    \end{pmatrix}
+    \\
+    &\qqqq+
+    \begin{pmatrix}
+      A(\bar{\theta}_\tk)\frac{\de}{\de x_\tk}\phi(\bar x_\tk) &
+      \frac{\de}{\de \t_\tk}\left( A(\bar \t_\tk) \phi(\bar x_\tk)
+      + B(\bar\t_\tk)u_\tk\right)\\
+      0 & I
+    \end{pmatrix}
+    \begin{pmatrix}
+      \Delta x_\tk \\ \Delta \theta_\tk
+    \end{pmatrix}.
+  \end{split}
+\end{equation}
+\end{fullwidth}
+This essentially amounts to extended Kalman filtering on the augmented
+state. Using this linearization, the approximation described in
+Section~\ref{sec:appr-dual-contr} can be applied analogously, which results in
+an approximation for the dual cost.
+
+\subsection{Nonparametric Gaussian Process Models}
+\label{sec:nonp-gauss-proc}
+
+The above treatment of parametric nonlinear models makes it comparably easy to
+extend the description from finitely many feature functions to an
+infinite-dimensional feature space defining a Gaussian process (GP) dynamics
+model:
+\begin{equation}\label{eq:gp-system}
+  x_{\tk+1} = f(x_\tk) + B(\t_\tk) u_\tk + \dist_\tk\\
+\end{equation}
+Assume that the true dynamics function $f$ is a draw from a Gaussian
+process prior $p(f) = \GP(f;\bar m,\bar\k)$ with prior mean function
+$\bar m:\Re^\ns \to \Re^\ns$, and prior covariance function (kernel)
+$\bar{\k}:\Re^\ns\times \Re^\ns\to \Re^{\ns\times\ns}$. This is using the widely
+used notion of ``multi-output regression''
+\cite[\textsection~9.1]{Rasmussen.Williams:2006:Gaussian}, \ie
+formulating the covariance as
+\begin{equation}
+  \label{eq:9}
+  \cov(f_i(x),f_j(x')) = \bar\k_{ij}(x,x').
+\end{equation}
+To simplify the treatment, we assume that the covariance factorizes between
+inputs and outputs, \ie $\bar\k_{ij}(x,x') = U_{ij}\k(x,x')$ with a
+univariate kernel $\k:\Re^\ns\times \Re^\ns \to \Re$ and a positive
+semidefinite matrix $U\in\Re^{\ns\times \ns}$ of output covariances.
+
+Using Mercer's theorem \cite[\ts3.a]{Konig:1986:Eigenvalue},
+we can decompose the kernel into a converging series over eigenfunctions
+$\phi_l(x)$, as
+\begin{equation}
+  \label{eq:infinite-sum}
+  \k(x,x') = \sum_{l=1} ^\infty \lambda_l \phi _l(x) \phi_l ^*
+(x') \ce \Phi \L \Phi\T,
+\end{equation}
+where we have defined the infinite-dimensional inner product $\Phi \L
+\Phi\T$ for the feature vectors $\Phi$ and the infinite-dimensional diagonal
+matrix $\L$ with elements $\L_{ll} = \lambda_l$.
+
+Using this notation, we can use the suggestive notation $f_\tk(x_\tk) =
+L\Omega\Phi(x_\tk)$ for the generative model
+\begin{equation}
+  \label{eq:generative-model}
+  f^i(x_\tk) = \sum_{j=1} ^n L_{ij}  \sum_{l=1} ^\infty
+\Omega^{jl} \phi_l(x_\tk),
+\end{equation}
+where $L$ is a matrix satisfying $LL\T=U$ (\eg the Cholesky decomposition), and
+the elements of $\Omega$ are draws from the ``white'' Gaussian process
+$\Omega^{jl} \sim \N(0,\lambda_l)$. Because of Mercer's theorem above,
+Equation~(\ref{eq:generative-model}) exists in mean-square expectation, and is
+well-defined in this sense.~\citenum{Adler:1981:Geometry,
+Rasmussen.Williams:2006:Gaussian}\iss
+\margincite{Adler:1981:Geometry}%
+\margincite{Rasmussen.Williams:2006:Gaussian}%
+This notation allows writing the current GP
+belief as a nonparametric prior with mean $\hat{\theta}_0$ and covariance
+$\Sigma_0 ^{\theta\theta} = U\otimes (\Phi\Lambda\Phi \T)$.
+
+Using this notation, a tedious but straightforward linear algebra derivation
+(see Appendix~\ref{sec:appendix-a}) shows that the posterior over
+$z\T=[x\T, \theta\T]$ after a number $\tk$ of EKF-linearized Gaussian
+observations is a tractable Gaussian process, for which the Gram matrix
+\begin{equation}
+  \cG = \cP + \cQ + \cK + \cF\inv\cR\cF^{-\intercal}
+\end{equation}
+consists of the parts
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+    \cP = \begin{bmatrix} A_0 \Sigma^{xx}_0 A_0\T& 0 \\ 0 & 0 \end{bmatrix} \qq
+    \cQ = \left(\DC\otimes I\right) \qq
+    \cK = \k(\vec{y}_{0:\tk-1},\vec{y}_{0:\tk-1}) \qq
+    \cR = \left(\NC\otimes I\right)
+\end{equation}
+\end{fullwidth}
+of appropriate size, depending on the current time $\tk$.
+The multi-step state transition matrix
+\begin{equation}
+  \cF = \begin{bmatrix}
+    I & 0 & 0 & \cdots & 0 \\
+    A_1 & I & 0 &  \cdots & 0 \\
+    A_2 A_1  & A_2 & I &  \cdots & 0 \\
+    \vdots & & & \ddots & \\
+    A_{\tk-1} \cdots A_1 & A_{\tk-1} \cdots A_2 & \cdots & & I \\
+    \end{bmatrix}
+\end{equation}
+is needed to account for the effect of the measurement noise $\NC$ over time.
+The dynamics matrices $A_\tk$ are the Jacobians $\left.\nabla_x
+f(x)\right|_{x_\tk}$.
+
+The posterior mean now evaluates to
+\begin{equation}
+  \label{eq:np-mean-posterior}
+  \begin{bmatrix}
+    \hat{x}_\tk\\
+    \hat{\theta}_\tk
+  \end{bmatrix} =
+  \begin{bmatrix}
+    \hat x_{\tk-1} \\
+    0
+  \end{bmatrix}
+  +
+  \begin{bmatrix}
+    \Phi(\hat x_{\tk-1})\Lambda\Phi(\vec{y}_{0:\tk-1})\T \\
+    \Lambda\Phi(\vec{y}_{0:\tk-1})\T
+  \end{bmatrix}
+  \G\inv
+  (\vec{y}_{1:t} - \cC\cF_{:,0} A_0 \hat x_0),
+\end{equation}
+with $\cC = (C\otimes I)$ of appropriate size.
+
+\pagebreak[4]
+
+The posterior covariance is comprised of
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{subequations}
+\begin{align}
+  \bar \Sigma_\tk ^{xx} &= A_{\tk-1} \Sigma_{\tk-1}^{xx} A_{\tk-1}\T + \DC +
+  \Phi(\hat x_{\tk-1}) \Sigma^{\t x}_{\tk-1} A_{\tk-1}\T + A_{\tk-1}
+  \Sigma^{x\t}_{\tk-1} \Phi(\hat x_{\tk-1})\T +   \Phi(\hat x_{\tk-1})
+  \Sigma^{\t\t}_{\tk-1}\Phi(\hat x_{\tk-1})\T \\
+  \Sigma_\tk^{xx} &= \bar\Sigma_{\tk} ^{xx} - \bar\Sigma_{\tk} ^{xx}
+  \left[ \bar\Sigma_{\tk} ^{xx} + \NC \right]\inv \bar\Sigma_{\tk} ^{xx}\\
+  \Sigma_\tk ^{x\theta} &= \cF_{\tk-1,:}\Phi(\vec{y}_{0:\tk-1})\Lambda
+   - \cF_{\tk-1,:} \left[ \cP + \cK + \cQ \right] \cG\inv
+  \Phi(\vec{y}_{0:\tk-1})  \Lambda
+   \label{eq:np-cross-posterior}\\
+  \Sigma_\tk ^{\theta x} &= (\Sigma_\tk ^{x\theta})\T\\
+  \Sigma_\tk ^{\t\t} &= \Lambda
+  - \Lambda \Phi(\vec{y}_{0:\tk-1})\T \cG\inv \Phi(\vec{y}_{0:\tk-1}) \Lambda.
+\label{eq:np-theta-posterior}
+\end{align}
+\end{subequations}
+\end{fullwidth}
+
+This formulation, together with the expositions in the preceding
+sections, defines a nonparametric dual control algorithm for Gaussian
+process priors. It is important to stress that this posterior is indeed
+``tractable'' in so far as it depends only on a Gram matrix of size $\ns t\times
+\ns t$, and the posterior over any $f(x)$ can be computed in time
+$\mathcal{O}((\ns t)^3)$,
+despite the infinite-dimensional state space.
+
+\subsubsection{An Approximation of Constant Computational Cost}
+\label{sec:an-approximation-of-constant-cost}
+
+In practical control applications, continuously rising inference
+cost is rarely acceptable. It is thus necessary to project the GP belief
+onto a finite representation, replacing the infinite sum in
+Equation~(\ref{eq:infinite-sum}) with a finite one, to bound the computational
+cost of the matrix inversion in Equations~\eqref{eq:np-mean-posterior},
+\eqref{eq:np-cross-posterior} and~\eqref{eq:np-theta-posterior}.
+We use a finite representation to approximate the kernel function, similar to
+the ones recently presented by \textcite{Rahimi.Recht:2008:Random}, and by
+\textcite{Lazaro.ea:2010:Sparse}. The approximation is described in
+Section~\ref{sec:sparse-spectrum-approximation}.
+
+\subsection{Feedforward Neural Network Models}
+\label{sec:dual-control-of-feedforward-neural-networks}
+
+Another extension of the parametric linear models of
+Section~\ref{sec:param-nonl-syst} is to allow for a nonlinear parametrization
+of the dynamics function
+\begin{equation}
+  \label{eq:7}
+  f(x;\boldsymbol{\t}) = \sum_i \theta^\text{lin} _i \phi_i(x;\theta_i
+  ^\text{nonlin}).
+\end{equation}
+A particularly interesting example of this structure are multilayer perceptrons.
+Consider a two-layer network with logistic link function $\sigma$, defined for
+each state $x^i$
+\begin{equation}
+  \label{eq:8}
+  x^i_{\tk+1}=f^i(x_\tk)= \sum_l {\t}^\text{out}_{il}
+      \sigma\left( \sum_{j} {\t}^\text{in}_{lj} x^j_\tk
+    + {\t}^\text{bias}_l \right),
+\end{equation}
+\margincite{Nguyen.Widrow:1990:Neural}%
+\margincite{Rumelhart.Hinton.ea:1986:Learning}%
+\margincite{Robbins.Monro:1951:Stochastic}%
+where $\boldsymbol{\t}^\text{out}$ are the weights from the latent to the
+output layer, $\boldsymbol{\t}^\text{in}$ are the weights from input to hidden
+units, and $\boldsymbol{\t}^\text{bias}$ are the biases of the hidden units (see
+Figure~\ref{fig:NN}). Superscripts denote vector elements.
+
+\begin{figure*}
+  \normalsize
+  \centering
+  \begin{tikzpicture}
+    \foreach \x/\i in {2.5/1,4/2,5.5/3,7/4}
+    {\node[var] at (\x,0) (f\i) {$x_{\tk+1} ^\i$};}
+    \foreach \x/\i in {1/1,2.5/2,4/3,5.5/4,7/5,8.5/6}
+    {\node[var] at (\x,-2) (h\i) {$s^\i _\tk$};
+     % \node[dirprior] at (\x+0.8,-2) {} edge (h\i);
+    \foreach \y in {1,2,3,4}
+    {\draw (h\i) -- (f\y); }};
+    \node[var] at (8.5,-4) (b) {$\boldsymbol{\t}^\text{bias}$};
+    \foreach \i in {1,2,3,4,5,6}
+    \draw[dashed] (h\i) -- (b);
+    \foreach \x/\i in {2.5/1,4/2,5.5/3,7/4}
+    {\node[var] at (\x,-4) (x\i) {$x_\tk ^\i$};
+      \foreach \y in {1,2,3,4,5,6}
+      {\draw (x\i) -- (h\y);}
+    }
+    \node at (12,-4) {$x_\tk^i$};
+    \node[shape=circle,fill=white] at (4.75,-3) {$\boldsymbol{\t}^\text{in}$};
+    \node at (12,-2) {$s_\tk^i = \sigma\left( \sum_{j}
+{\t}^\text{in}_{ij} x^j _\tk
+    +
+    {\t}^\text{bias}_i \right)$};
+    \node[shape=circle,fill=white] at (4.75,-1) {$\boldsymbol{\t}^\text{out}$};
+    \node at (12,0) {$x_{\tk+1} ^i = f^i(x_\tk)= \sum_j
+{\t}^\text{out}_{ij}
+      s_\tk ^j$};
+  \end{tikzpicture}
+  \caption[Two-layer feed-forward neural network.]{Two-layer feed-forward
+  neural network. Sketch to illustrate the structure of Equation~\eqref{eq:8}.}
+  \label{fig:NN}
+\end{figure*}
+
+Neural networks for control applications were proposed multiple times, see \eg
+\citenum{Nguyen.Widrow:1990:Neural}. Instead of using backpropagation and
+stochastic gradient descent as in most applications of neural networks
+\citenum{Rumelhart.Hinton.ea:1986:Learning, Robbins.Monro:1951:Stochastic}, the
+EKF inference procedure can be used to train the weights as well
+\citenum{Singhal.Wu:1989:Training}. This is possible because the EKF
+linearization \margincite{Singhal.Wu:1989:Training} can be applied for the
+nonlinear link function, \eg the logistic function. Speaking in terms of feature
+functions, not only the weight of each feature but also the shape (steepness)
+can be inferred. A limiting factor for this inference is the number of
+data points: the more features and parameters are introduced, the more data
+points are necessary to learn.
+
+Using the state augmentation $z\T = (x\T \; {{\t}^\text{out}}\T \;
+{{\t}^\text{in}}\T \; {{\t}^\text{bias}}\T)$, and linearizing \wrt
+all parameters in each step, the EKF inference on the neural network parameters
+allows us not only to apply relatively cheap inference on them, but also to use
+the dual control framework to plan control signals, accounting for the effect
+of future observations and the subsequent change in the belief. This means the
+approximate dual controller described in Section~\ref{sec:appr-dual-contr} can
+identify those parts of the neural net that are relevant for applying optimal
+control to the problem at hand. In Section~\ref{sec:exp-information-importance},
+we show an experiment with these properties.
+
+\section{Experiments}
+\label{sec:nonlinear-experiments}
+
+We show the features of dual control on a set of different simulated control
+problems. Relative to a lower bound (LB), which represents the minimal cost a
+fully informed system can obtain, we compare three different controllers: A
+simple certainty equivalent (CE) controller, a CE controller with exploration
+bonus (EB) and the approximate dual (AD) controller.
+
+The exploration bonus
+\cite{Wittenmark:1975:Active}
+for multiple parameters is defined as
+\begin{equation}
+  l_\EB =  \tau \tr\left[\Sigma^{\t\t}\right],
+\end{equation}
+where $\tau$ is a scalar exploration weight and $\Sigma^{\t\t}$ is the
+uncertainty on the parameters. The exploration bonus is evaluated for the
+predicted parameter covariance where the prediction time is chosen according to
+the order of the system so that the effect of the current control signal shows
+up in the belief over the parameters. Every experiment was repeated $50$ times
+with different random seeds, which were shared across controllers for better
+comparability.
+
+All systems presented below are very simple setups. Their primary point is to
+show qualitative differences of the controllers' behaviors. The experiments
+were done with different approximations from the preceding section to show
+experimental feasibility for each of them.
+
+The feature set used for a specific application is part of the prior
+assumptions for that application. Large uncertainty requires flexible models,
+which take longer to converge and require more exploration. Feature
+selection is important, but since it is independent of the dual
+control framework itself and a broad topic on its own, it is beyond the scope
+of this thesis. In the following experiments, different feature sets are used
+both as examples for the flexibility of the framework, but also to model
+different structural knowledge about the problems at hand.
+
+\subsection{Time-dependent Exploration}
+\label{sec:exp-pendulum}
+
+A cart on a rail is a simple example for a dynamical system. Combined with
+a nonlinearly varying slope, a simple nonlinear system can be constructed.
+The dynamics, prior beliefs, and true values for the parameters are chosen to be
+\begin{equation}
+  \label{eq:pendulum-system}
+  x_{\tk+1} = \begin{bmatrix} 1 & 0.4 \\ 0 & 1 \end{bmatrix} x_\tk
+  + \begin{bmatrix} 0 & 0 \\ \t^1 & \t^2 \end{bmatrix}
+  \begin{bmatrix} \varphi^1(x^1_\tk) \\ \varphi^2(x^1_\tk) \end{bmatrix}
+  + \begin{bmatrix} 0 \\ 1 \end{bmatrix} u_\tk,
+\end{equation}
+with
+\begin{equation}
+  \t \sim \N\left(\begin{bmatrix} 0 \\ 0 \end{bmatrix},
+    \begin{bmatrix}1 & 0 \\ 0 & 1  \end{bmatrix}\right)
+  \qq
+  \t_\text{true} = \begin{bmatrix} 0.8 \\ 0.4 \end{bmatrix},
+\end{equation}
+where superscripts denote vector elements. The nonlinear functions $\varphi$
+are shifted logistic functions of the form
+\begin{equation}
+  \label{eq:logistic-nonlinearity}
+  \varphi^1(x) = -\frac{1}{1+e^{(x+5)}} \qq
+  \varphi^2(x) = \frac{1}{1+e^{-(x-5)}},
+\end{equation}
+and disturbance/noise is chosen to be $\DC = \NC = 10^{-2} I$. We use this
+setup as a testbed for a time-structured exploration problem. The actual system
+and its dynamics are relatively irrelevant here, as we focus on a complication
+caused by the cost function: The reference to be tracked is
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \label{eq:exp2-trajectory}
+  \mathbf{x}^\text{ref}_{0:11} = \begin{bmatrix} 0 \\ 0 \end{bmatrix}
+  \qquad
+  \mathbf{x}^\text{ref}_{12:14} = \begin{bmatrix} 10 \\ 0 \end{bmatrix}
+  \qquad
+  \mathbf{x}^\text{ref}_{15} = \begin{bmatrix} 0 \\ 0 \end{bmatrix}
+  \qquad
+  \mathbf{x}^\text{ref}_{16:18} = \begin{bmatrix} -10 \\ 0 \end{bmatrix}
+  \qquad
+  \mathbf{x}^\text{ref}_{19:20} = \begin{bmatrix} 0 \\ 0 \end{bmatrix},
+\end{equation}
+\end{fullwidth}
+which is also shown in each plot of
+Figure~\ref{fig:controller-comparison-pendulum}
+(\ref*{p:dc-reference}). The state weighting is time-dependent with
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \mathbf{\SC}_{0:4} = \begin{bmatrix} 10 & 0 \\ 0 & 0 \end{bmatrix}
+  \qquad
+  \mathbf{\SC}_{5:10} = \begin{bmatrix} 0 & 0 \\ 0 & 0 \end{bmatrix}
+  \qquad
+  \mathbf{\SC}_{11:20} = \begin{bmatrix} 100 & 0 \\ 0 & 0 \end{bmatrix},
+\end{equation}
+\end{fullwidth}
+and control cost is relatively low: $\CC = 10^{-3}$. The task, thus, is to first
+keep the cart fixed at the origin, for the first 4 time steps. This is followed
+by a ``loose'' period between time steps $5$ and $10$. Then, the cart has to be
+moved to one side, back to the center, to the other side, and back again, all at
+high cost. A good exploration strategy in this setting is to act cautiously for
+the first 4 time steps, then aggressively explore in the ``loose'' phase, to
+finally be able to control the motion with high precision.
+
+The inference model is a GP with approximated SE kernel, as described in
+Section~\ref{sec:sparse-spectrum-approximation}. We use $30$ alternating
+sine and cosine features that are distributed according to the power spectrum
+of the full SE kernel. Since the true nonlinearity of
+Equation~\eqref{eq:logistic-nonlinearity} is not of this form, the
+approximation is out of model and the lower bound controller only represents a
+perfectly learned, but still not exact, model.
+
+Figure~\ref{fig:controller-comparison-pendulum} shows a density estimated from
+50 state trajectories for the four different controllers. The lower bound
+controller (top) controls precisely at times of high cost, and does nothing for
+times with zero cost, controlling perfectly up to the measurement and state
+disturbances. The certainty equivalent controller (second from top) never
+explores actively, it only learns ``accidentally'' from observations arising
+during the run. Since the initial trajectory requires little action, it is left
+with a bad model when the reference starts to move at time step $12$. The
+exploration bonus controller (second from bottom) continuously explores,
+because it has no way of knowing about the ``loose'' phase ahead. Of course,
+this strategy incurs a higher cost initially. The dual controller (bottom)
+effectively holds off exploration until it reaches the ``loose'' phase, where
+it explores aggressively.
+
+\begin{figure*}[ht]
+  \setlength\figureheight{8cm}
+  \setlength\figurewidth{0.96\columnwidth}
+  \footnotesize
+  \inputTikZ{time_relevance_mod}
+  \caption[Controller comparison for time-dependent exploration.]{Controller
+comparison for time-dependent exploration. {\bfseries Top four:} Density
+estimate for 50 trajectories (second state). From top to bottom: lower bound
+(\ref*{p:rel-lb}), certainty equivalent control (\ref*{p:rel-ce}), CE with
+Bayesian exploration bonus (\ref*{p:rel-eb}), approximate dual control
+(\ref*{p:rel-dc}). Reference trajectory (\ref*{p:rel-ref}). {\bfseries Bottom:}
+The mean cost per time step is shown in the bottom plot, with colors matching
+the controllers noted above.}\label{fig:controller-comparison-pendulum}
+\end{figure*}
+
+\subsection{Relevance-dependent Exploration}
+\label{sec:exp-information-importance}
+
+The system, including nonlinearities, for this experiment is the same as before,
+although with noise parameters $\DC = \NC = 10^{-3}I$. The reference
+trajectory and state weighting are much simpler:
+\begin{equation}
+  \label{eq:exp3-trajectory}
+  \mathbf{x}^\text{ref}_{0:11} = \begin{bmatrix} 0 \\ 0 \end{bmatrix}
+  \qquad
+  \mathbf{x}^\text{ref}_{12:18} = \begin{bmatrix} 10 \\ 0 \end{bmatrix}
+  \qquad
+  \mathbf{x}^\text{ref}_{18:20} = \begin{bmatrix} 0 \\ 0 \end{bmatrix},
+\end{equation}
+with the time-dependent weighting
+\begin{equation}
+  \mathbf{\SC}_{0:10} = \begin{bmatrix} 0 & 0 \\ 0 & 0 \end{bmatrix}
+  \qquad
+  \mathbf{\SC}_{11:20} = \begin{bmatrix} 10 & 0 \\ 0 & 0 \end{bmatrix},
+\end{equation}
+allowing for identification in the beginning, while penalizing deviations of
+the first state in later time steps.
+
+Important to note here is that the reference trajectory only passes areas of
+the state space where $\varphi^1$ is strong, and $\varphi^2$ is negligible.
+Good exploration thus will ignore the second parameter $\theta^2$, but this can
+only be found through reasoning about future trajectories.
+
+In this experiment, the learned model is of the neural network form described
+in Section~\ref{sec:dual-control-of-feedforward-neural-networks}. We use $4$
+logistic features (see Equation~\eqref{eq:8}) with two free parameters each
+($\t^\text{in}$ and $\t^\text{out}$) and equally spaced $\t^\text{bias}$
+between $-5$ and $5$, the locations of the true nonlinear features. This means
+it is possible to learn the perfect model in this case.
+
+Figure~\ref{fig:position-relevance} shows a density estimated from 50 state
+trajectories for the four different controllers. Because of symmetry in the
+cost function and feature functions, EB (with $\tau=1$) can not ``decide''
+between the relevant $\theta^1$ and the irrelevant $\theta^2$, identifying both
+under high control cost. It thus reduces the uncertainty on $\t^2$, which does
+not help the subsequent control. The AD controller ignores $\t^2$ completely,
+and only identifies $\t^1$ in early phases, leading to good control performance.
+
+\begin{figure*}
+  \setlength\figureheight{8cm}
+  \setlength\figurewidth{0.95\columnwidth}
+  \footnotesize
+  \inputTikZ{position_relevance_mod}
+  \caption[Controller comparison for relevance-dependent
+exploration.]{Controller comparison for relevance-dependent exploration.
+{\bfseries Top four:} Density estimate for 50 trajectories (second
+state). From top to bottom: lower bound (\ref*{p:rel-lb}), certainty equivalent
+control (\ref*{p:rel-ce}), CE with Bayesian exploration bonus (\ref*{p:rel-eb}),
+approximate dual control (\ref*{p:rel-dc}). Reference trajectory
+(\ref*{p:rel-ref}). {\bfseries Bottom:} The mean cost per time step is shown in
+the bottom plot, with colors matching the controllers noted above.
+  }\label{fig:position-relevance}
+\end{figure*}
+
+\subsection{Information Maintenance}
+\label{sec:exp-knowledge-maintenance}
+The last experiment is again similar to Section~\ref{sec:exp-pendulum}, but uses
+a different set of nonlinear functions: shifted, non-normalized Gaussian
+functions
+\begin{equation}
+  \varphi^1(x) = e^{-\frac{(x-2)^2}{2}}
+  \qq
+  \varphi^2(x) = e^{-\frac{(x+2)^2}{2}}
+  \qq
+  \t_\text{true} = \begin{bmatrix} 1.0 \\ 0.8 \end{bmatrix}.
+\end{equation}
+For this experiment, the model is learned with parametric linear regression,
+according to Section~\ref{sec:param-nonl-syst}. The fundamental difference to
+the other experimental setups is that the model now assumes \emph{parameter
+drift}. This results in growing uncertainty for the parameters over time. The
+true parameters are kept constant for simplicity.
+
+The reference to be tracked passes through both nonlinear features but then
+stays at one of them:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \label{eq:exp4-trajectory}
+  \mathbf{x}^\text{ref}_{0:6} = \begin{bmatrix} -5 \\ 0 \end{bmatrix}
+  \qquad
+  \mathbf{x}^\text{ref}_{7} = \begin{bmatrix} -4 \\ 0 \end{bmatrix}
+  \qq
+  \mathbf{x}^\text{ref}_{8} = \begin{bmatrix} -2 \\ 0 \end{bmatrix}
+  \qq
+  \mathbf{x}^\text{ref}_{9} = \begin{bmatrix} 0 \\ 0 \end{bmatrix}
+  \qquad
+  \mathbf{x}^\text{ref}_{10:20} = \begin{bmatrix} 2 \\ 0 \end{bmatrix}.
+\end{equation}
+\end{fullwidth}
+The cost structure is
+\begin{equation}
+  \mathbf{\SC}_{0:5} = \begin{bmatrix} 0 & 0 \\ 0 & 0 \end{bmatrix}
+  \qquad
+  \mathbf{\SC}_{6:20} = \begin{bmatrix} 10 & 0 \\ 0 & 0 \end{bmatrix},
+\end{equation}
+such that state deviations from the reference are penalized starting from time
+instant $6$.
+
+\begin{figure*}
+  \setlength\figureheight{6cm}
+  \setlength\figurewidth{\columnwidth}
+  \footnotesize
+  \inputTikZ{information_maintenance}
+  \caption[Controller comparison under fading beliefs.]{Controller comparison
+under fading beliefs. Parameter knowledge (left, middle) and state trajectory
+(right) for different controllers. From top to bottom: certainty equivalent
+control (\ref*{p:info-ce}), CE with Bayesian exploration bonus
+(\ref*{p:info-eb}), approximate dual control (\ref*{p:info-dc}). The true
+parameters are the black lines.}\label{fig:information-maintenance}
+\end{figure*}
+
+Figure~\ref{fig:information-maintenance} shows the parameter belief and relevant
+state of a single run of this experiment over time. It shows that the in
+the beginning necessary parameter $\t^1$ is learned early by EB and the AD
+controller, while CE learns only ``accidentally''. The EB controller also
+learns the second parameter in the beginning, even though the knowledge will be
+lost over time. When the trajectory reaches the zone of the second parameter,
+the EB controller tries to lower the growing uncertainty over the first
+parameter $\t^1$ every now and then (visible by the change in state $x^1$),
+incurring high cost. AD control completely ignores the growing uncertainty on
+$\t^1$ after reaching the area of $\t^2$, thus preventing unnecessary
+exploration.
+
+\subsection{Quantitative Comparison}
+
+The above experiments aim at emphasizing qualitative strengths of AD control
+over simpler approximations. It is desirable for a controller to deal
+with flexible models of many parameters, many of which will invariably
+be superfluous for a given trajectory. For reference,
+Table~\ref{tab:ndc-results} also shows quantitative results: Averages and
+standard deviations of the cost, from the 50 runs for each controller. The AD
+controller shows good performance overall; interestingly, it also has low
+variance. CE and EB were more prone to instabilities.
+
+\begin{table}
+\begin{centering}\small
+\begin{tabular}{@{} l | r r | r r | r r @{}}
+\toprule &
+\multicolumn{2}{c|}{Exp.~\ref{sec:exp-pendulum}} &
+\multicolumn{2}{c|}{Exp.~\ref{sec:exp-information-importance}} &
+\multicolumn{2}{c}{Exp.~\ref{sec:exp-knowledge-maintenance}}
+\\       & mean&std  &  mean&std  &  mean&std \\
+\midrule
+LB   & 7.15&3.85 &  1.75&0.33 &  0.66&0.51 \\
+CE       & 15.72&5.20 & 2.49&0.74 &  1.76&0.90 \\
+EB   & 20.88&6.74 & 2.64&0.37 & 84.91&6.77 \\
+AD       & 14.33&5.40 & 1.96&0.34 &  1.62&0.56 \\
+\bottomrule
+\end{tabular}\\
+\caption[Quantitative comparison of different controllers.]{Quantitative
+comparison of different controllers. Average and standard deviation of costs in
+the experiments for 50 runs.}
+\end{centering}
+\label{tab:ndc-results}
+\vspace{1mm}
+\end{table}
+
+\section{Conclusion}
+
+The dual control framework developed by \textcite{Tse.Bar-Shalom:1973:Actively}
+is a promising approach to the intractable dual control problem because the
+approximation to the dual cost retains the value of information. In this
+chapter, we showed how this method can be applied to contemporary
+nonlinear inference methods from machine learning, including approximate
+Gaussian process regression and multi-layer networks. The result is a tractable
+approximation that captures notions of structured exploration, like the value of
+waiting for future exploration opportunities, and distinguishing relevant from
+irrelevant model parameters.
+
+On several simulated systems we showed the potential of this framework in the
+nonlinear setting. Retaining the value of information is crucial for applying
+dual control for rich model classes because simpler approaches---like
+exploration bonuses or constant excitation---can show limited performance
+in these cases.

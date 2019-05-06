@@ -1,0 +1,43 @@
+%********************************************************************
+% Bibliography
+%*******************************************************
+% work-around to have small caps also here in the headline
+\manualmark
+\markboth{\spacedlowsmallcaps{\bibname}}{\spacedlowsmallcaps{\bibname}} % work-around to have small caps also
+%\phantomsection
+\refstepcounter{dummy}
+% \addtocontents{toc}{\protect\vspace{\beforebibskip}} % to have the bib a bit from the rest in the toc
+% \addcontentsline{toc}{chapter}{\tocEntry{\bibname}}
+% \bibliographystyle{plainnat}
+\label{app:bibliography}
+% \newlength{\bibhang}
+% \setlength{\bibhang}{5mm}
+
+
+{\titleformat{\chapter}[display]%
+        {\relax}{\mbox{}\oldmarginpar{\vspace*{-3\baselineskip}\color{halfgray}
+        \hspace*{-57.6mm}\chapterNumber\thechapter}}{0pt}%
+{\color{gray}\sffamily\fontseries{l}\selectfont\LARGE}[\normalsize\vspace*{
+.8\baselineskip}\titlerule]%
+
+% different geometry for the front matter
+\newgeometry{left=24.8mm,top=27.4mm,headsep=2\baselineskip,
+  textwidth=164.6mm,marginparsep=0mm,marginparwidth=0mm,
+  textheight=45\baselineskip,headheight=\baselineskip}
+
+\chapter{Bibliography}
+\printbibliography[heading=none]
+\restoregeometry}
+
+% \printbibliography
+
+%% TRICKS FOR CREATING THE BIBLIOGRAPHY
+
+% remove double curly braces
+% sed 's/{{/{/g; s/}}/}/g' export.bib > export_fix.bib
+
+% extract only those entries that appear in a paper
+% bibexport -o export.bib paper.aux
+
+% create the keys according to a consistent scheme
+% bibtool -f "%2n(author):%4d(year):%1W(title)" -F export.bib > export_keys.bib

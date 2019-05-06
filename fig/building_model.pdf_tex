@@ -1,0 +1,92 @@
+%% Creator: Inkscape inkscape 0.91, www.inkscape.org
+%% PDF/EPS/PS + LaTeX output extension by Johan Engelen, 2010
+%% Accompanies image file 'fig/building_model.pdf' (pdf, eps, ps)
+%%
+%% To include the image in your LaTeX document, write
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics{<filename>.pdf}
+%% To scale the image, write
+%%   \def\svgwidth{<desired width>}
+%%   \input{<filename>.pdf_tex}
+%%  instead of
+%%   \includegraphics[width=<desired width>]{<filename>.pdf}
+%%
+%% Images with a different path to the parent latex file can
+%% be accessed with the `import' package (which may need to be
+%% installed) using
+%%   \usepackage{import}
+%% in the preamble, and then including the image with
+%%   \import{<path to file>}{<filename>.pdf_tex}
+%% Alternatively, one can specify
+%%   \graphicspath{{<path to file>/}}
+%%
+%% For more information, please see info/svg-inkscape on CTAN:
+%%   http://tug.ctan.org/tex-archive/info/svg-inkscape
+%%
+\begingroup%
+  \makeatletter%
+  \providecommand\color[2][]{%
+    \errmessage{(Inkscape) Color is used for the text in Inkscape, but the package 'color.sty' is not loaded}%
+    \renewcommand\color[2][]{}%
+  }%
+  \providecommand\transparent[1]{%
+    \errmessage{(Inkscape) Transparency is used (non-zero) for the text in Inkscape, but the package 'transparent.sty' is not loaded}%
+    \renewcommand\transparent[1]{}%
+  }%
+  \providecommand\rotatebox[2]{#2}%
+  \ifx\svgwidth\undefined%
+    \setlength{\unitlength}{170.07874016bp}%
+    \ifx\svgscale\undefined%
+      \relax%
+    \else%
+      \setlength{\unitlength}{\unitlength * \real{\svgscale}}%
+    \fi%
+  \else%
+    \setlength{\unitlength}{\svgwidth}%
+  \fi%
+  \global\let\svgwidth\undefined%
+  \global\let\svgscale\undefined%
+  \makeatother%
+  \begin{picture}(1,0.58333333)%
+    \put(0,0){\includegraphics[width=\unitlength,page=1]{fig/building_model.pdf}}%
+    \put(0.63372571,0.41623662){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{}}}%
+    \put(0.73138117,0.422213){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$u_h$}}}%
+    \put(0.73138117,0.3722129){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$u_c$}}}%
+    \put(0.38138116,0.3722129){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$\delta_3$}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=2]{fig/building_model.pdf}}%
+    \put(0.61471445,0.22221288){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$C_1$}}}%
+    \put(0.9241219,0.25554618){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$C_3$}}}%
+    \put(0.24078856,0.25554618){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$C_2$}}}%
+
+\put(0.18333338,0.4166664){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$x_2$}}}%
+
+\put(0.47412191,0.41331633){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$x_1$}}}%
+
+\put(0.86471447,0.36546453){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$x_3$}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=3]{fig/building_model.pdf}}%
+    \put(0.78138116,0.32138168){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$K_4$}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=4]{fig/building_model.pdf}}%
+    \put(0.63138118,0.42304448){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$\,\eta_h$}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=5]{fig/building_model.pdf}}%
+    \put(0.63138118,0.37304448){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$\,\eta_c$}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=6]{fig/building_model.pdf}}%
+    \put(0.11471452,0.32138165){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$K_2$}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=7]{fig/building_model.pdf}}%
+    \put(0.23138118,0.32138165){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$K_3$}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=8]{fig/building_model.pdf}}%
+    \put(0.49528479,0.11471408){\color[rgb]{0,0,0}\rotatebox{90}{\makebox(0,0)[lb]{\smash{$K_1$}}}}%
+    \put(0,0){\includegraphics[width=\unitlength,page=9]{fig/building_model.pdf}}%
+    \put(0.54929503,0.08888023){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$\tau_1$}}}%
+    \put(0.06471448,0.40554621){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$\tau_2$}}}%
+    \put(0.52482686,0.00725903){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$\delta_2$}}}%
+    \put(-0.00195219,0.3722129){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$\delta_2$}}}%
+    \put(0.46666672,0.00725903){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$\delta_1$}}}%
+    \put(-0.00195219,0.32221308){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{$\delta_1$}}}%
+    \put(0.69778367,0.4895695){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{inner wall}}}%
+    \put(0.04870235,0.25882336){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{outer}}}%
+    \put(0.04870235,0.22549002){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{wall}}}%
+    \put(0.32676442,0.42956901){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{room\\ }}}%
+    \put(0.5978641,0.05349494){\color[rgb]{0,0,0}\makebox(0,0)[lb]{\smash{window}}}%
+  \end{picture}%
+\endgroup%

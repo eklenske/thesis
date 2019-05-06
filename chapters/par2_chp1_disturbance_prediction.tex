@@ -1,0 +1,750 @@
+\chapter{Gaussian Processes for Periodic Error Correction}
+\label{ch:periodic-error-correction}
+
+\lettrine{S}{crews and gears} are not the only source of periodically
+recurring errors in dynamical systems. Every system that is tied to the
+ubiquitous day-night cycle (like building control or energy systems) or to
+recurring movements (like a beating heart or a satellite) suffers from
+periodic errors. Since these effects are often small relative to the
+required control precision, they are in practice usually neglected in the
+controller design. For high-precision control systems, however, such errors can
+be the dominant source of problems.
+
+Correcting errors only after they are measured leads to a delay in the error
+correction. If the errors can be anticipated, the control performance can be
+significantly improved. While stochastically arising errors can not be
+preempted systematically, periodic effects are amenable for prediction: Since
+their future resembles their past, extrapolation is easier and more structured.
+Based on this idea, we present a framework for identification and control of
+periodic effects. Our framework continually performs identification at runtime,
+\margincite{Kalman:1960:New}%
+\margincite{Erm.Sandrock:2003:Adaptive}%
+\margincite{Crassidis.Markley:1997:Predictive}%
+\margincite{Sarkka:2013:Bayesian}%
+\margincite{Yuen.Novotny.ea:2008:Quasiperiodic}%
+\margincite{Kocijan.Murray-Smith.ea:2004:Gaussian}%
+\margincite{Aswani.Gonzalez.ea:2013:Provably}%
+\margincite{Tanaskovic.Fagiano.ea:2013:Adaptive}%
+\margincite{Hennig:2011:Optimal}%
+\margincite{Ko.Fox:2009:GP-BayesFilters}%
+and is thus applicable to stochastic time varying systems.
+
+The correction of periodic errors has repeatedly been studied. The ``Very Large
+Telescope'' uses an internal parametric model for the known error sources, and
+a Kalman filter \citenum{Kalman:1960:New}
+as an estimator for the model
+parameters.~\citenum{Erm.Sandrock:2003:Adaptive} High-precision tracking of
+spacecrafts on periodic trajectories was addressed by
+\citeauthor{Crassidis.Markley:1997:Predictive}
+\citenum{Crassidis.Markley:1997:Predictive}, based on predictive filtering using
+an extended Kalman filter. To predict the beating motion of a human heart,
+extended Kalman filtering for state estimation was used by
+\citeauthor{Yuen.Novotny.ea:2008:Quasiperiodic}
+\citenum{Yuen.Novotny.ea:2008:Quasiperiodic}, allowing the nonlinear model to
+change over time. Concerning the use of learning based models for control, there
+is a wide range of literature available in the context of adaptive control. For
+methods based on model predictive control see, \eg the recent works
+\citenum{Kocijan.Murray-Smith.ea:2004:Gaussian},
+\citenum{Aswani.Gonzalez.ea:2013:Provably},
+\citenum{Tanaskovic.Fagiano.ea:2013:Adaptive}.
+
+In contrast to previous methods for periodic error correction, the approach
+presented here does not rely on a pre-specified finite-di\-men\-sion\-al model
+class. Instead, we propose a nonparametric framework based on Gaussian process
+(GP) regression that is frequently used for system identification. It is closely
+related to least-squares regression, which is the most commonly employed
+technique in system identification, but is based on a probabilistic
+interpretation, which can be used to guide exploration during identification
+\citenum{Hennig:2011:Optimal}. There is recent work on using GPs for state
+filtering \citenum{Ko.Fox:2009:GP-BayesFilters} and on modeling and control of
+nonlinear systems \cite{Pillonetto.Dinuzzo.ea:2014:Kernel},
+\cite{Hall.Rasmussen.ea:2012:Modelling}. The idea of using the learned model in
+predictive control is conceptually similar to
+\cite{Kocijan.Murray-Smith.ea:2004:Gaussian},
+\cite{Aswani.Gonzalez.ea:2013:Provably}, \cite{Maciejowski.Yang:2013:Fault},
+with the key difference that we use a GP to predict time varying effects.
+
+A Gaussian process model is parametrized
+by two objects: mean and covariance function.  When used in system
+identification, in particular the choice of covariance function has a strong
+effect on performance, and requires consideration of the dynamics to
+be identified. Although the literature knows ``universal'' covariance functions
+that can technically approximate any continuous function
+\margincite{Steinwart:2002:On}\margincite{Micchelli.Xu.ea:2006:Universal}%
+\citenum{Steinwart:2002:On,Micchelli.Xu.ea:2006:Universal}, this notion only
+applies in the infinite limit, and can be subject to extremely slow convergence
+\margincite{van-der-Vaart.van-Zanten:2008:Rates}%
+\margincite{van-der-Vaart.van-Zanten:2011:Information}%
+\citenum{van-der-Vaart.van-Zanten:2008:Rates,
+van-der-Vaart.van-Zanten:2011:Information}. Hence, the choice of covariance
+function is often critical in practice.
+
+In this chapter, the focus lies on the identification of quasiperiodic systems
+(Section~\ref{sec:problem_statement}) by using a specific model class involving
+periodicity (Section~\ref{sec:quasiperiodic_covariance_function}). The
+identification of hyperparameters is performed by exploiting the structure of
+the problem at hand (Section~\ref{sec:custom-optimisation}). We focus on the
+case where the only nonlinearity is the periodic effect, and use model
+predictive control to achieve optimal closed-loop performance
+(Section~\ref{sec:standard_mpc}). A reformulation in the form of a tracking
+problem is proposed, which offers simple implementation and facilitates
+analysis of the control performance (Section~\ref{sec:tracking_mpc}). To show
+the qualitative properties of this framework, we apply it to a simulated,
+educational problem (Section~\ref{sec:gp-pec-experiments}). While GPs and MPC
+are well studied techniques, the main contribution of this work is a
+combination that is tailored to quasiperiodic functions, allowing for
+extrapolation and efficient computation, which is crucial for online
+identification and control.
+
+\section{Problem Statement}
+\label{sec:problem_statement}
+
+Consider the continuous dynamical system
+\begin{align}
+\label{eq:problem}
+  \dot x(t) &= A_c x(t) + B_c u(t) + g(t),
+\end{align}
+composed of a linear system with continuous dynamics matrices $A_c$ and $B_c$,
+and a nonlinear time varying function $g:\Re_+ \to \Re^\ns$, where $x\in\Re^\ns$
+denotes the state and $u\in\Re^\ni$ the input. For simplicity, full state
+measurement is assumed. The structure of \eqref{eq:problem} could be chosen more
+generally---Gaussian process models can also learn nonlinear functions of the
+state and input. We opt for this linear formulation with nonlinear external
+reference here to keep the resulting control problem conceptually clear and
+\margincite{Allgower.Badgwell.ea:1999:Nonlinear}%
+computationally simple. If needed, the definition can also be adapted to a
+nonlinear system using a nonlinear model predictive control technique
+\citenum{Allgower.Badgwell.ea:1999:Nonlinear}.
+
+The disturbance function $g(t)$ captures nonlinear time dependent effects, in
+particular we focus on systems exhibiting some form of periodic behavior.
+Systems with time dependent errors of periodic characteristic appear in
+different application areas, such as building temperature control
+\cite{Gondhalekar.Oldewurtel.ea:2010:Least-restrictive}, beating-heart surgery
+\cite{Yuen.Novotny.ea:2008:Quasiperiodic} or electrical power grids
+\cite{Taylor.McSharry:2007:Short}.
+For strictly periodic functions, there exists a constant period $\lambda$, such
+that $g(t+n\lambda)=g(t)$ for $n\in\Nat$. However, error sources in real systems
+are often not perfectly periodic in this sense, they show various forms of
+phase-shift, deformation and desynchronization. To address this issue, we
+generalize to consider locally periodic functions. These are functions for which
+$g(t) \approx g(t+n\lambda)$ for $n\lambda \ll \ell$ and $g(t) \not\approx
+g(t+n\lambda)$ for $n\lambda\gg\ell$, where $\ell$ is some measure of temporal
+locality. Intuitively speaking, local periodicity means that the periodicity is
+not strict, \ie variations are allowed. In particular, this covers functions
+that vary on a slower time-scale, \eg a decaying oscillation or an oscillation
+with long-term change in shape.
+
+We consider the case where a linear model (matrices $A_c$ and $B_c$) is
+available and the goal is to infer the disturbance function $g(t)$ online from
+measurements. This is motivated by the fact that often a nominal model is
+derived either from physical considerations or an offline system identification
+step.
+
+At every measurement time $t_k$, the system goes
+through the following process:
+\begin{enumerate}
+  \item Measure $x(t_k), \dot x(t_k)$
+  \item Construct observation for $g(t_k)$, update model for $g(t)$
+  \item Compute control input $u(x(t_k),g(t_k))$ and apply to the system
+\end{enumerate}
+
+\section{GPs for Quasiperiodic Functions}
+\label{sec:gps_for_quasiperiodic_functions}
+
+GP regression is a general framework for nonlinear regression, see
+Chapter~\ref{ch:gaussian-processes} for an introduction. Note that in the
+current chapter we use the time $t$ as the function argument, since this
+chapter is concerned with time-series forecasting.
+
+As mentioned above, in the context of our particular setup, the GP framework
+may in fact also be used to construct probabilistic models for fully nonlinear
+systems $g(x,u,t)$, without major changes. However, we focus on
+the simpler case of $g(t)$, allowing for direct incorporation in stochastic
+predictive control techniques.
+
+This section proposes a covariance function suitable for the identification
+of quasiperiodic functions and presents an efficient technique for
+hyperparameter optimization.
+
+\subsection{Quasiperiodic Covariance Functions}
+\label{sec:quasiperiodic_covariance_function}
+
+The way to construct a periodic hypothesis class, and the central idea of this
+chapter, is to construct a covariance function that focuses prior probability
+mass on locally periodic functions. Among the most popular kernels for
+regression purposes is the square exponential\footnote{The square exponential
+kernel is also known as \emph{squared exponential kernel}, \emph{Gaussian
+kernel}, or \emph{radial basis function}.} kernel
+\vspace{-\baselineskip}
+\begin{equation}
+\label{eq:square-exp}
+k_{\mathsc{se}}(t,t';\ell_\mathsc{se}) =
+\exp\left(-\frac{|t-t'|^2}{2\ell_\mathsc{se}^{2}}\right),
+\end{equation}
+with length-scale $\ell_\mathsc{se}$. This kernel gives a stationary model
+which does not allow for structured extrapolation.
+\citeauthor{MacKay:1998:Introduction} proposed a periodic covariance function,
+based on a sine-transformation of the input \cite{MacKay:1998:Introduction}
+\begin{equation}
+\label{eq:periodic}
+k_\mathsc{p}(t,t';\ell_\mathsc{p},\lambda) =
+\exp\left(-\frac{2\sin^2\left(\frac{\pi}{\lambda}
+(t-t')\right)}{\ell_\mathsc{p}^2}\right),
+\end{equation}
+with length-scale $\ell_\mathsc{p}$ and period-length $\lambda$.
+Function values $g(t), g(t')$ jointly sampled from Gaussian process
+priors with this covariance function are perfectly correlated  if $|t-t'| =
+\lambda$, resulting in identical function values for points that are one period
+length apart. Thus, sampled functions are perfectly periodic with period
+$\lambda$. Within this period length, samples vary on a typical regularity
+length scale of $\delta = \sin^{-1}(\ell_\mathsc{p} /2)\lambda/\pi$, over a
+range with standard deviation $\theta=1$ (Figure~\ref{fig:covariance}).
+
+\begin{figure}
+\setlength\figurewidth{0.9\textwidth}%
+\setlength\figureheight{0.309\figurewidth}%
+\centering%
+\footnotesize%
+\subfloat[Covariance functions]{\inputTikZ{covariance_functions}
+\label{fig:covariance_functions}}\\
+\subfloat[Samples from GPs with these covariance
+functions]{\inputTikZ{covariance_samples} \label{fig:covariance_samples}}
+\caption[Kernel combination, covariance function and samples.]{Kernel
+combination, covariance function and samples. {\bfseries Top:} The compound
+kernel $k_\mathsc{c}$ (\ref*{p:pec-cov-comb},\eqref{eq:comp-kernel}) is the
+product of $k_\mathsc{se}$ (\ref*{p:pec-cov-se}, \eqref{eq:square-exp}) and
+$k_\mathsc{p}$ (\ref*{p:pec-cov-per}, \eqref{eq:periodic}). {\bfseries Bottom:}
+Samples drawn from Gaussian process priors using these covariance functions
+(same colors). Samples using the periodic kernel are perfectly periodic, while
+samples using the compound kernel are only periodically similar on a scale
+controlled by the parameter $\ell_\mathsc{se}$ of (\ref{eq:comp-kernel}). This
+local periodicity can be used to increase modeling flexibility.}
+\label{fig:covariance}
+\end{figure}
+
+For many systems, strict periodicity is too strong an assumption. For example,
+the weather is periodic, but also stochastic, which has an effect on the
+periodic temperature in a building. Therefore, modeling external errors with
+perfect periodicity can lead to severe overfitting and low extrapolation
+performance. To weaken the perfect correlation, we use the fact that the kernel
+property is closed under multiplication and addition (\ie kernels form a
+semi\-ring \cite[\ts4.2.4]{Rasmussen.Williams:2006:Gaussian}): Although the
+product of two Gaussian processes is not a Gaussian process, the product of two
+kernel functions is also a kernel and therefore a valid covariance function for
+a Gaussian process.
+
+This property of covariance functions is useful to construct composite
+covariance functions, either automatically from data
+\cite{Duvenaud.Lloyd.ea:2013:Structure} or manually. Since we assume access to
+physical knowledge about the system, we constructed a suitable kernel in a
+qualitative manner. Multiplying the periodic kernel with a broad
+square exponential gives another kernel whose corresponding Gaussian process
+condenses mass at periodic functions that change over time
+\begin{equation}
+\label{eq:comp-kernel}
+k_\mathsc{c}(t,t';\theta^2,\ell_\mathsc{se},\ell_\mathsc{p},\lambda) = \theta^2
+\cdot
+k_{\mathsc{se}}(t,t';\ell_\mathsc{se})
+\cdot k_\mathsc{p}(t,t';\ell_\mathsc{p},\lambda),
+\end{equation}
+with signal variance $\theta^2$ and the other parameters as stated above. This
+kernel considers two input times similar if they are similar under both the
+square exponential \emph{and} the periodic kernel. If $\ell_\mathsc{se} \gg
+\lambda$, this allows encoding a decay in the covariance over several
+oscillations. The different covariance functions are shown in
+Figure~\ref{fig:covariance} (a), exemplary randomly sampled functions from
+Gaussian processes with those covariance functions are shown in
+Figure~\ref{fig:covariance} (b). The posteriors of GPs with aperiodic and
+periodic covariance, trained on periodic data, are shown in
+Figure~\ref{fig:kernels}. In the region far away from data points the
+predictions are equal, whereas close predictions show significantly more
+structure with the locally periodic kernel.
+
+\begin{figure}
+\centering%
+\footnotesize%
+\subfloat[SE kernel]{\inputTikZ{bad_kernel}}\\
+\subfloat[Locally periodic kernel]{\inputTikZ{good_kernel}}
+\caption[Comparison of Gaussian process posteriors for structured
+extrapolation.]{Comparison of Gaussian process posteriors (posterior mean
+function as thick line, shaded region covers two marginal standard deviations)
+arising from the same periodic data (\refpoints{p:bad-kernel-data}) for the
+square exponential kernel (\ref*{p:bad-kernel-mean}/\ref*{p:bad-kernel-sd}) and
+a product of periodic and square exponential kernel
+(\ref*{p:good-kernel-mean}/\ref*{p:good-kernel-sd}). The locally periodic kernel
+provides a richer extrapolation, which can be used for improved predictive
+control.}
+\label{fig:kernels}
+\end{figure}
+
+Figure~\ref{fig:kernels} (b) illustrates the key benefit of this approach: With
+increasing distance from data, the prediction degrades gracefully back to the
+zero mean. If a not perfectly periodic function would be predicted with a
+purely periodic kernel, prediction and reality could run out of phase over
+time, leading to bad predictive behavior. The proposed locally periodic
+covariance function circumvents this problem.
+
+\subsection{Custom Parameter Optimization}
+\label{sec:custom-optimisation}
+
+The combined kernel (\ref{eq:comp-kernel}) has four hyperparameters,
+which will henceforth be subsumed in the vector $\boldsymbol{\eta}
+\ce
+(\theta^2,\ell_\mathsc{se},\ell_\mathsc{p},\lambda)$. This includes the
+period length $\lambda$ of the periodicity. Inferring good values for
+$\boldsymbol{\eta}$ is
+important for good modeling performance. The parameter optimization is done
+by type-II maximum likelihood / maximum a-posteriori, as described in
+Section~\ref{sec:parameter-fitting}. However, using this optimization scheme in
+a non-modified (``vanilla'') fashion usually does not work in periodic or
+quasiperiodic settings.
+
+The log-likelihood surface for $\boldsymbol{\eta}$ is, especially
+for periodic likelihoods,
+not convex. Figure~\ref{fig:maximum_likelihood} shows a slice through this
+surface along the periodicity parameter $\lambda$ for a quasiperiodic dataset.
+Standard numerical optimizers will, thus, usually return suboptimal local
+extrema of this function. An interesting observation in our specific context is
+that the periodic structure of the covariance function and the data is reflected
+in this hyperparameter likelihood as well. The reason for this is a harmonic
+effect: If the data has a true period of $\lambda$, then periodic functions
+whose periodicity is an integer multiple of $\lambda$ also fit the data well,
+resulting in low values in the log likelihood
+\begin{equation}
+\label{eq:gp-pec-log-likelihood}
+  \log p(\mathbf{y} | \mathbf{t},\boldsymbol{\eta}) = - \frac{1}{2} \mathbf{y}\T
+K(\boldsymbol{\eta})\inv
+  \mathbf{y} - \frac{1}{2} \log \left|K(\boldsymbol{\eta})\right| -\frac{N}{2}
+\log 2\pi.
+\end{equation}
+
+Intuitively, this can be compared to a function with periodicity $\lambda$,
+which could also be considered as a function with period length $2\lambda$. To
+see this, recall from Figure~\ref{fig:covariance} that the periodic
+functions can have an arbitrary recurring pattern in each repetition. By
+inspecting Equation~\eqref{eq:gp-pec-log-likelihood}, we can gain intuition and
+notice that the likelihood is a nonlinear function of terms of the form
+\eqref{eq:periodic}. Since each of these terms is periodic in $\lambda^{-1}$,
+the overall function will show periodicity in that term.
+
+This harmonic structure can be exploited by means of a heuristic to increase
+numerical stability of the optimizer. We designed a customization of a
+numerical optimizer, outlined in Algorithm~\ref{alg:custom-optimisation}, that,
+after convergence to a local minimum
+$\boldsymbol{\eta}=(\theta^2,\ell_\mathsc{se},\ell_\mathsc{p},\lambda)$, also
+evaluates the
+function value at
+$\boldsymbol{\eta}'=(\theta^2,\ell_\mathsc{se},\ell_\mathsc{p},\frac{\lambda}{2}
+)$. If the
+negative log likelihood at this location is lower, the optimal value and its
+location is updated, and the bisection is repeated. The locations that are
+iteratively proposed during the loop (Line 4 of
+Algorithm~\ref{alg:custom-optimisation}) are shown as
+vertical lines (\ref*{p:log-search}) in Figure~\ref{fig:maximum_likelihood}.
+This approach uses the otherwise problematic harmonic structure in the
+hyperparameter optimization to find better optima.
+
+\begin{figure}%
+\centering%
+\footnotesize%
+\inputTikZ{log_posterior}%
+\caption[Slice through the likelihood surface.]{Slice through the
+likelihood surface along the dimension of the hyperparameter $\lambda$, defining
+the period length of $g$. Shown are the logarithm of the type-II marginal
+likelihood (\ref*{p:log-likelihood}) and the logarithm of the posterior
+distribution (\ref*{p:log-posterior}). The shape of the log posterior is
+dominated by the likelihood, indicating that most prior assumptions are
+dominated by the observed data. The meaning of the vertical lines is explained
+in Section~\ref{sec:custom-optimisation}.}
+  \label{fig:maximum_likelihood}
+\end{figure}
+
+\vspace{1.1cm}
+\begin{algorithm}
+\vspace{-1.1cm}
+\hrule
+\vspace{2mm}
+\begin{algorithmic}[1]%
+\State $\boldsymbol{\eta} \ce
+(\theta^2,\ell_\mathsc{se},\ell_\mathsc{p},\lambda)$
+\Comment{initial guess}
+  \State $\boldsymbol{\eta} \gets$
+\Call{Locally\_Optimize}{$\boldsymbol{\eta}$} \Comment{use std.
+optimizer}
+    \Loop
+      \State $\boldsymbol{\eta}' \gets
+(\theta^2,\ell_\mathsc{se},\ell_\mathsc{p},\frac{1}{2}\lambda)$ \Comment{make
+proposal}
+
+      \If{$\text{nll}(\boldsymbol{\eta}') > \text{nll}(\boldsymbol{\eta})$}
+\Comment{compare neg. log
+lik.}
+        \State \textbf{break} \Comment{reject and leave loop}
+      \Else
+        \State $\boldsymbol{\eta} \gets \boldsymbol{\eta}'$
+\Comment{accept proposal}
+      \EndIf
+    \EndLoop
+    \State \textbf{return} $\boldsymbol{\eta}$
+% \EndProcedure
+\end{algorithmic}%
+\caption[Customized parameter optimization.]{Customized parameter
+optimization. After the convergence of the standard optimizer, the
+likelihoods for halved period lengths are evaluated. The period length with the
+lowest negative log likelihood is accepted.}%
+\label{alg:custom-optimisation}%
+\vspace{1mm}
+\hrule
+\end{algorithm}
+
+\subsection{Sampling Methods for Parameter Identification}
+
+Instead of using only a maximum likelihood or maximum a-posteriori point
+estimate, theoretically the goal would be to compute the marginal
+\vspace{-\baselineskip}
+\begin{equation}
+  p(g) = \int p(g|\boldsymbol{\eta}) p(\boldsymbol{\eta}) d\boldsymbol{\eta}
+\end{equation}
+using a prior density $p(\boldsymbol{\eta})$
+\cite[\ts5.2]{Rasmussen.Williams:2006:Gaussian},
+which can only be performed approximately at high computational expense. One
+comparably elaborate and precise way to approximate the posterior distribution
+over $\boldsymbol{\eta}$ and to marginalize over the unknown
+parameters $\boldsymbol{\eta}$ is sampling,
+using a Markov chain Monte Carlo (MCMC) method. We found \emph{shrinking-rank
+slice sampling} \cite{Thompson.Neal:2010:Slice} to be particularly well-suited
+for this task and implemented the method for a comparison between the MAP
+point-estimate and MCMC sampling.
+
+The left column of Figure~\ref{fig:ml_vs_sampling} shows the resulting marginals
+on the function $g$ at two different points in the learning process for a
+quasiperiodic system. As expected, the posterior uncertainty is high after
+only a few observations, in particular after less than one full period, but
+collapses to a highly confident distribution after several periods of
+observations have been collected.
+
+The right column of Figure~\ref{fig:ml_vs_sampling} shows the Gaussian process
+point estimates for $g$ resulting from MAP inference. From the figure, it is
+clear that point estimation leads to a more limited, and generally overly
+confident extrapolation model, especially in early phases of learning, when the
+dataset does not yet cover several periods. However, MAP offers two advantages
+that make it attractive from an applied perspective: The first one is
+computational cost---MCMC sampling can be orders of magnitude more expensive
+than optimization for a MAP estimate. The second one is an algebraic one: MCMC
+estimates are mixtures of Gaussian process models (see
+Figure~\ref{fig:ml_vs_sampling}). This means the overall model for the
+regression function defined by these models is an object challenging to work
+with. Therefore, applications often use the computationally much less taxing MAP
+inference.
+
+\begin{figure*}
+\setlength{\figurewidth}{0.45\columnwidth}%
+\setlength{\figureheight}{0.25\columnwidth}%
+\centering%
+\footnotesize%
+\subfloat{\inputTikZ{ml_vs_sampling_2}\hspace{5mm}}%
+\subfloat{\inputTikZ{ml_vs_sampling_1}\hspace{5mm}}\\%
+\subfloat{\inputTikZ{ml_vs_sampling_4}\hspace{5mm}}%
+\subfloat{\inputTikZ{ml_vs_sampling_3}\hspace{5mm}}%
+\caption[Comparison of MCMC inference to MAP inference.]{Comparison of Markov
+chain Monte Carlo inference (left column) with the maximum a-posteriori point
+estimate (right column) on hyperparameters of the Gaussian process model.
+{\bfseries Top:} Initial phase of learning, after only a few observations.
+{\bfseries Bottom:} Convergence after observation of several periods.}
+\label{fig:ml_vs_sampling}
+\end{figure*}
+
+\section{GP Predictions in Model Predictive Control}
+\label{sec:control}
+Popular control frameworks supporting the incorporation of feed-forward model
+predictions include linear quadratic regulator (LQR)
+\clearpage \noindent
+techniques \cite[\ts8.3]{Ogata:1995:Discrete}, or model predictive control (MPC)
+\cite{Rawlings.Mayne:2009:Model}. See
+Chapter~\ref{ch:discrete-time-optimal-control} for an introduction to these
+methods.
+
+For periodic error correction, we employ an online MPC framework, computing
+the optimal control input by solving an optimization problem for each measured
+state. This allows for direct incorporation and updating of the GP model
+as well as system constraints, such as input constraints.
+
+\subsection{Discrete-time MPC formulation}
+\label{sec:standard_mpc}
+
+A discrete-time MPC approach is used based on the discretization of the model
+\eqref{eq:problem}
+\begin{equation}
+  \label{eq:pec-discrete-system}
+  x_{k+1} = A x_k + B u_k + a_k,
+\end{equation}
+where $A$ and $B$ are obtained from a zero-order-hold discretization and
+$a_k$ is a discretization of choice of $g(t)$ at time $t_k$.
+
+Since the optimal control input is computed at each sampling time based on the
+current measured state, the model can be updated online. An important aspect
+and advantage of combining online learning of a continuous time function with
+MPC is the possibility to decouple the discretization from the sampling time.
+While in a standard MPC setup, unmodeled effects only become apparent through
+state measurements and therefore require fast sampling rates, the GP model
+captures these effects and provides a continuous prediction of their evolution
+in the future. As a result, the sampling time can be chosen as a multiple of
+the discretization or prediction interval without sacrificing performance by
+using the sequence of control inputs in between state measurements. It is clear
+that an upper bound on the sampling time is imposed by the prediction horizon.
+
+Since the prediction from the Gaussian process model is stochastic and provides
+a distribution over future function values rather than one particular sequence,
+stochastic MPC methods offer a natural framework to incorporate the GP model
+and make use of the posterior model uncertainty. For an overview of recent
+stochastic MPC methods, see \eg \cite{Kouvaritakis.Cannon:2014:Stochastic},
+\cite{Mayne:2014:Model} and the references therein. The model uncertainty is an
+important advantage over other nonparametric methods like kernel ridge
+regression or regularized least squares, which do not provide posterior
+uncertainty.
+
+A common cost function in stochastic MPC for regulating the system state to the
+origin is the expected value of the sum of stage costs
+\vspace{-\baselineskip}
+\begin{equation}
+J(x_0,p(g),\mathbf{u}) \ce \mathbb{E}\left[\sum_{i=0}^{\HL}
+l(x_i(p(g)), u_i) \right]
+\end{equation}
+where $p(g) = \GP(g;m^{|\mathbf{t},\mathbf{y}},k^{|\mathbf{t}})$ denotes the
+posterior distribution over the function $g$. If the stage cost $l$ is chosen to
+be quadratic (which is the case for many practical MPC problems) and since the
+inputs are deterministic and the GP posterior is Gaussian, the expected value is
+equivalent to using the mean of the state evolution, i.e.\ the mean GP
+prediction of $g(t)$ in dynamics \eqref{eq:problem}. The most common stochastic
+MPC problem hence results in a deterministic formulation by using the GP
+posterior mean $\tilde g(t) = m^{|\mathbf{t},\mathbf{y}}(t)$, and reduces to the
+certainty equivalent controller.
+
+We consider the case of quadratic stage cost in the following. Since the true
+function $g(t)$ is unknown, a discrete-time system describing the mean of the
+state trajectory is approximated by replacing $a_k$ in
+\eqref{eq:pec-discrete-system} with $\tilde a_k$, obtained by discretizing the
+mean of the GP prediction $\tilde g(t)$. $\tilde{\cdot}$
+denotes the estimate of the true function inferred from data, and emphasizes
+that these are generally not the same. The resulting discrete-time system can
+directly be used in a standard MPC formulation.
+
+\subsection{Tracking MPC}
+\label{sec:tracking_mpc}
+
+We propose a different formulation in the following, which simplifies
+implementation by transforming the regulation problem into a linear tracking
+problem. The state of the mean discrete-time system at prediction time step
+$k+n$, starting from state $x_k$ at time step $k$ is given by:
+\begin{equation}
+\label{eq:state-evolution}
+  \tilde x_{k+n} = A^n x_k + \sum_{m=1}^{n} A^{m-1} B u_{k+n-m} +
+\sum_{m=1}^{n} A^{m-1} \tilde a_{k+n-m},
+\end{equation}
+where $\tilde a_k$ is the discretization of the GP prediction
+$\tilde g$. This is the sum of the linear system and a system driven by
+$\tilde a_k$. The MPC problem for regulating system
+\eqref{eq:pec-discrete-system} to the origin can be reformulated as a tracking
+problem for the linear system, tracking a nonlinear reference.
+
+The reference signal is generated from the GP prediction according to
+\eqref{eq:state-evolution}:
+\begin{equation}
+\label{eq:reference-generation}
+  \mathbf{x}^\text{ref} = \left[\tilde a_{k+1}\quad
+\cdots\quad \sum_{m=1}^{n} A^{m-1} \tilde a_{k+n-m}\right].
+\end{equation}
+The resulting MPC problem is given by
+\begin{subequations}
+\begin{align}
+  (\mathbf{x}^*, \mathbf{u}^*)=\underset{\mathbf{x,u}}{\argmin} \quad
+&\sum_{n=0}^{\HL} l(x_n - x^\text{ref}_n, u_n)  \\
+\text{s.t.}\quad
+& x_{n=0} = x(t_k) \\
+& x_{n+1} = A x_n + B u_n \\
+& u \in \mathbb{U}
+\end{align}
+\end{subequations}
+where $\mathbb{U} \subseteq \mathbb{R}^\ni$ is a polytopic set defining the
+input constraints, $\mathbf{x}\ce[x_0,\dots,x_\HL]$ is the state trajectory and
+similarly for $\mathbf{u}$. The resulting problem is a quadratic program that
+can be solved efficiently using available optimization software (\eg
+\cite{Grant.Boyd:2014:CVX}) or fast MPC techniques proposed in recent years,
+such as code generation (\eg \cite{Domahidi:2012:FORCES}). Because this is an
+instance of a basic MPC technique, the standard properties of MPC apply. It also
+allows for a more principled analysis of the closed-loop properties: Extensions
+in the field of tracking MPC can be applied to ensure stability, such as
+reference governors, or the periodic MPC approach in
+\cite{Limon.Alamo.ea:2012:MPC}. Applying the modified tracking formulation in
+\citenum{Limon.Alamo.ea:2012:MPC}, convergence can be guaranteed if the model
+$\tilde g(t)$ converges to a periodic function.
+
+\begin{remark}
+The discrete-time model \eqref{eq:pec-discrete-system} with the predicted
+nonlinear term $\tilde a_k$ can in principle be used in any linear or linearized
+state estimation or control method based on state prediction. One example is the
+Kalman filter. The nonlinear prediction from the GP can be incorporated into the
+state prediction without complicating the Kalman filter equations. The
+measurement update of the Kalman filter remains unchanged. The GP predictions
+increase the performance by providing a better state estimate. This leads to
+smaller correction terms and smaller posterior variance.
+\end{remark}
+
+\begin{remark}
+Because the point-wise posterior of a Gaussian process is a Gaussian
+distribution, state constraints can be included in the form of soft constraints,
+penalizing the amount of constraint violation, or chance constraints, ensuring
+constraint satisfaction with a certain probability
+\margincite{Schwarm.Nikolaou:1999:Chance-constrained}%
+\margincite{Ono.Williams:2008:Iterative}%
+\citenum{Schwarm.Nikolaou:1999:Chance-constrained, Ono.Williams:2008:Iterative}.
+\end{remark}
+
+\begin{remark}
+The approach can also be applied to stage cost functions and constraints that
+do not allow for a deterministic representation using the GP model, \eg a
+value-at-risk formulation involving the variance of the cost by using
+sample-based methods to approximate the stochastic MPC problem
+\margincite{Campi.Garatti.ea:2009:scenario}%
+\margincite{Schildbach.Fagiano.ea:2014:Scenario}%
+\citenum{Campi.Garatti.ea:2009:scenario, Schildbach.Fagiano.ea:2014:Scenario}.
+GPs fit well in this framework by being generative models from which sample
+trajectories can be easily drawn.
+\end{remark}
+
+\begin{remark}
+Depending on the discretization, a trade-off between the mean and variance
+of a quadratic cost function can be formulated as a deterministic optimization
+problem using the posterior GP prediction:
+\begin{subequations}
+\begin{align}
+  \Exp\left[ \frac{1}{2} x_n\Trans \SC_n x_n\right] &= \mu_n\Trans \SC_n \mu_n +
+  \tr(\SC_n\Sigma_n),\\
+  \Var\left[ \frac{1}{2} x_n\Trans \SC_n x_n\right] &= \mu_n\Trans \SC_n
+\Sigma_n \SC_n
+  \mu_n + \frac{1}{2} \tr(\SC_n\Sigma_n \SC_n\Sigma_n).
+\end{align}
+\end{subequations}
+This is the case whenever the distribution $\N(\mu_n,\Sigma_n)$ of $a_k$ can be
+directly obtained from the distribution of $g(t)$, \eg in the case of Euler
+discretization.
+\end{remark}
+
+\section{Numerical Results}
+\label{sec:gp-pec-experiments}
+
+The presented method was implemented for a simple problem and evaluated in
+simulation to show how the state evolution is anticipated by the use of the GP
+prediction. In Chapter~\ref{ch:predictive-error-correction-for-telescopes},
+this method will also be evaluated on an experimental application in hardware.
+
+\subsection{Implementation Details}
+\label{sec:implementation_details}
+
+Since in practice the state and derivative can not be measured directly, they
+have to be approximated from potentially noisy measurements. A Kalman filter
+\cite{Kalman:1960:New} can be used to estimate the state, which increases the
+performance, especially when the measurement noise is high.
+
+Since the function to be inferred acts as additional input to the dynamics,
+observations of the disturbance are constructed from observations of the
+\emph{change} in state, $\Delta x = x_{k+1} - x_k $. We therefore assume
+$g(t)$ to be piece-wise constant, here a zero-order-hold linearization is used,
+chosen to be at $t+\frac{1}{2}\Delta t$
+\begin{equation}
+  a_k = G g(t+\frac{1}{2}\Delta t), \qquad G = \int_0^{\Delta
+t}e^{A\tau}d\tau,
+\end{equation}
+where $\Delta t$ is the sampling time. Note that this is only used to generate
+the data point, the resulting GP model is still a continuous function.
+The value $g(t+\nicefrac{1}{2}\Delta t)$ is obtained as solution of the linear
+system
+\begin{equation}
+  G g(t+\frac{1}{2}\Delta t) \approx \left(x_{k+1} - A x_k - B u_k\right),
+\end{equation}
+which is the data point used to train the GP.
+
+In the experiments presented in the following, the discretization of the
+mean prediction $\tilde g(t)$ is obtained from the exact
+discretization
+\begin{equation}
+\label{eq:affine_convolution}
+ \tilde a_k = \intl_{0}^{\Delta t} e^{A_c\tau} \tilde g({(k+1)\Delta
+t}-\tau)d\tau ,
+\end{equation}
+evaluated with a standard ODE-solver \cite{Dormand.Prince:1980:family}.
+
+\subsection{A Simple Example}
+\label{sec:toy_problem}
+
+As a simple problem for providing intuition, consider the following linear
+double integrator system with an additive time-periodic component $g(t)$:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+\label{eq:toy-dynamics}
+  \dot x(t) = \begin{bmatrix}0 & 1 \\ 0 & 0 \end{bmatrix}
+  x(t) + \begin{bmatrix}0 \\ 1 \end{bmatrix} u(t) + g(t),
+\qq
+ g(t) = \begin{bmatrix}\sin(t) \\ \cos(1.3 t) \end{bmatrix}.
+\end{equation}
+\end{fullwidth}
+The goal is to control the first state of the system to the origin. We use the
+quadratic cost
+\begin{equation}
+  l(x_n,u_n) = \frac{1}{2} x_{n}\Trans \SC x_{n} + \frac{1}{2} u_n\Trans
+  \CC u_n
+\end{equation}
+with diagonal state weight $\SC = \diag(100, 0)$.
+The weight on the control input is set to $\CC=1$, allowing for
+aggressive control behavior. The horizon length of the MPC is set to $\HL = 15$.
+State and input constraints are omitted for simplicity.
+
+The system was simulated numerically with a sampling rate of 1\unit{Hz}.
+Figure~\ref{fig:toy_example} shows control inputs and resulting state
+trajectories for a model predictive controller without information about the
+disturbance $g$, and a model predictive controller using the posterior mean
+functions of two periodic Gaussian process regressors as a model for $g$. One
+GP is trained for each dimension of the disturbance.
+
+After an identification phase in the first 5\unit{s} of the experiment, the GP
+based controller shows a drastic performance improvement. Omitting this
+identification phase, the root-mean-square (RMS) error, measured with respect
+to the origin, drops by 90\unit{\%}, from 0.94 for the linear model to 0.097
+for the GP based controller. Speaking more qualitatively,
+Figure~\ref{fig:toy_example} also shows less residual structure in the
+controlled state $x_1$. It is visible that control signals are applied earlier
+when the prediction is used.
+
+While the GP based controller is effective at reducing the periodic structure
+from the first controlled state, the regression model itself remains able to
+predict the periodic error correctly into the future, even when trained
+exclusively on controlled states. This is possible because the regression model
+is obtained from the controlled dynamics, so it can account for the shift of
+periodicity from the states to the control input. This feature of the framework
+is crucial for identifying controlled systems.
+
+\begin{figure}
+\centering
+\footnotesize
+\inputTikZ{toy_example}
+\caption[Closed-loop input and output trajectories with MPC
+control.]{Closed-loop input and output trajectories with MPC control.
+MPC using a linear model (\ref*{p:toy-x-plain}) is compared to the GP based MPC
+controller (\ref*{p:toy-x-gp}).}
+\label{fig:toy_example}
+\end{figure}
+
+\section{Conclusion}
+
+High-precision control of dynamical systems requires precise models, even of
+minor external error sources. Where analytic models are not available, they can
+only be constructed numerically from measurements of the system. Periodic error
+sources are an especially promising domain in this regard, as they can be
+extrapolated well into the future. We have studied a nonparametric modeling
+framework based on a carefully crafted Gaussian process prior exhibiting a
+weak, localized form of periodicity. Because Gaussian regression returns models
+in the form of stochastic differential equations, they can be combined directly
+with existing control frameworks. Integration into a model predictive control
+scheme was investigated, which can evaluate the prediction at a desired temporal
+resolution.

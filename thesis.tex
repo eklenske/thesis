@@ -1,0 +1,276 @@
+% ******************************************************************************
+% A thesis style loosely based on Andre Miede's classic thesis and tufte-latex
+%
+% by Edgar D. Klenske (ed.klenske@gmx.de)
+%
+% ******************************************************************************
+
+\documentclass[
+                twoside,
+                openright, % disable for proofreading printouts
+                titlepage,
+                numbers=noenddot,
+                a4paper,
+                paper=a4,
+                fontsize=11pt,
+                ]{scrreprt}
+
+
+
+\pdfinfo{
+  /Title (Nonparametric Disturbance Correction and Nonlinear Dual Control)
+  /Subject (PhD Thesis)
+  /Author (Edgar D. Klenske)
+  /Copyright (Copyright (c) 2017 Edgar D. Klenske)
+  /Publisher (ETH Zurich)
+  /Copyrighted (True)
+  /PublicationType (Book)
+}
+
+% *******************************************************
+% Packages and Adjustments
+% *******************************************************
+\input{modernthesis-config}
+
+\usepackage[a4paper,
+            justified,
+            nohyper,
+            nobib,
+            nofonts,
+            ]{tufte-style}
+
+\usepackage{lettrine}
+\renewcommand{\LettrineSecondString}{H}
+\linespread{1.05} % a bit more linespread for Palatino
+\renewcommand{\chapterpagestyle}{empty}
+
+\usepackage{newpxtext}
+\usepackage{textcomp}
+% \usepackage{newpxmath}
+\usepackage[defaultsans]{lato}
+
+\usepackage{catchfile}
+\usepackage{pbox}
+
+% \usepackage{showframe} % useful for debugging the layout
+
+\usepackage{hyphenat}
+\usepackage[
+  style=numeric,
+%   style=verbose,
+%   autocite=footnote,
+  backend=biber,
+  backref=true,
+  citetracker,
+  urldate=iso8601,
+  firstinits=true,
+  maxbibnames=99,
+%   terseinits=true,
+]{biblatex}
+\bibliography{bibliography.bib} % deprecated, but useful for kile autocomplete
+% \addbibresource{bibliography.bib} % modern version
+
+% *******************************************************
+% Citation Macros
+% *******************************************************
+\let\citenum\cite
+\newcommand{\customcite}[1]{\citeauthor{#1}, \citetitle{#1}, \citeyear{#1}}
+\renewcommand{\cite}[2][]{\citenum[#1]{#2}\marginpar{\mbox{}\footnotesize\kern
+-0.1em\normalfont\citenum{#2} \customcite{#2}}}
+
+\newcommand{\margincite}[1]{\marginpar{\mbox{}\footnotesize\kern
+-0.1em\normalfont\citenum{#1} \customcite{#1}}}
+
+\let\citetext\textcite
+\renewcommand{\textcite}[1]{\citetext{#1}\marginpar{\mbox{}\footnotesize\kern
+-0.1em \normalfont\citenum{#1} \customcite{#1}}}
+
+\usepackage{textcomp}
+\usepackage{mathtools}
+\usepackage{csquotes}
+\usepackage{xspace}
+
+\newcommand{\mathsc}[1]{{\normalfont\textsc{#1}}}
+
+\newcommand{\refpoints}[1]{\,\ref*{#1}\,\raisebox{1pt}{\ref*{#1}}%
+\kern1pt\raisebox{-1pt}{\ref*{#1}}\,\ref*{#1}\,}
+
+\newcommand{\iss}{\spacefactor\sfcode`. \space} % inter-sentence space
+
+% *******************************************************
+% Lightweight Todo Macros
+% *******************************************************
+\newcommand{\addref}{\dre{\bfseries
+??}\marginpar{\raisebox{-2pt}{\tikz{\node[fill=lgra, inner
+sep=2pt]{\sffamily\footnotesize ADD REFERENCE}}}}\xspace}
+
+\newcommand{\expand}[1][]{\dre{\bfseries
+[$\cdots$ EXPAND $\cdots$]}\marginpar{\raisebox{-2pt}{\tikz{\node[fill=dred,
+inner sep=2pt, text=white]{\sffamily\footnotesize EXPAND}}} \footnotesize #1}}
+
+\newcommand{\addeq}[1][]{\begin{equation}{\color{dred}{\texttt{!!! ADD
+EQUATION !!!}}} \end{equation} \marginnote[-1.5\baselineskip]{
+\raisebox{-2pt}{\tikz { \node [ fill=dred, inner sep=2pt, text=white,
+align=left]{\sffamily\footnotesize ADD EQUATION}}} #1}}
+
+\newcommand{\addex}{\marginpar{\raisebox{-2pt}{\tikz{\node[fill=lgra,inner
+sep=2pt]{ \sffamily\footnotesize ADD EXAMPLE}}}}}
+
+\newcommand{\addcite}[1][]{[\dre{\bfseries
+??}]\marginpar{\raisebox{-2pt}{\tikz{\node[fill=lblu,inner
+sep=2pt]{ \sffamily\footnotesize ADD CITATION}}} \footnotesize #1}\xspace}
+
+\newcommand{\addfig}[1][]{\dre{\bfseries
+??}\marginpar{\raisebox{-2pt}{\tikz{\node[fill=lgr,inner
+sep=2pt]{ \sffamily\footnotesize ADD FIGURE}}} \footnotesize #1}\xspace}
+
+\newcommand{\todo}[1]{\marginpar{\raisebox{-2pt}{\tikz{\node[fill=ora,inner
+sep=2pt]{ \sffamily\footnotesize TODO}}} \footnotesize #1}}
+
+\usepackage[a-2b,pdf15]{pdfx}
+% \newcommand{\U}{}\newcommand{\G}{}\newcommand{\M}{}
+
+\input{glyphtounicode.tex}
+\input{glyphtounicode-cmr.tex}
+\pdfgentounicode=1
+
+\input{preamble-latex}
+\input{preamble-math}
+\input{preamble-hyper}
+
+% *******************************************************
+% Hyphenation
+% *******************************************************
+\hyphenation{set-ups}
+
+% *******************************************************
+% Always remember the 3 rules of scientific writing:
+% 1) It has to be true.
+% 2) It has to be clear (with respect to rule 1).
+% 3) It has to be short (with respect to rules 1 and 2).
+% *******************************************************
+%  Now, put on some nice music and let's go!
+% *******************************************************
+
+\begin{document}
+% \frenchspacing
+\raggedbottom
+\selectlanguage{american}
+\pagenumbering{roman}
+\pagestyle{plain}
+
+% these only work when `pdflatex` is called with `--shell-escape`
+\CatchFileDef\gitdirty{"| ./checkdirty"}{}
+\CatchFileDef\gitrevision{"| git rev-parse --short HEAD"}{}
+\CatchFileDef\gitbranch{"| git rev-parse --abbrev-ref HEAD"}{}
+\CatchFileDef\gittag{"| git tag -l --points-at HEAD"}{}
+
+% \let\cleardoublepage\clearpage % for proofreading only!
+
+% *******************************************************
+% Frontmatter
+% *******************************************************
+
+% different geometry for the front matter
+\newgeometry{
+%   bindingoffset=10mm,
+  inner=26mm, % (210 - 158) / 2 - (10 / 2)
+  top=27.4mm,headsep=2\baselineskip,
+  textwidth=158mm,marginparsep=0mm,marginparwidth=0mm,
+  textheight=45\baselineskip,headheight=\baselineskip}
+\pagenumbering{roman}
+
+\include{frontback/ETH_Titlepage}
+\include{frontback/Titlepage}
+\include{frontback/Titleback}
+\cleardoublepage\include{frontback/Dedication}
+\include{frontback/Abstract}
+\cleardoublepage\include{frontback/Acknowledgments}
+\cleardoublepage\include{frontback/Quote} % force TOC on facing pages
+\include{frontback/Contents} % ToC, Lists
+
+%*******************************************************
+% Mainmatter
+%*******************************************************
+
+% the main geometry from tufte-style
+\restoregeometry
+
+% Main style
+\pagestyle{scrheadings}
+\automark[section]{chapter}
+\renewcommand{\chaptermark}[1]{\markboth{\spacedlowsmallcaps{#1}}{\spacedlowsmallcaps{#1}}}
+\renewcommand{\sectionmark}[1]{\markright{\spacedlowsmallcaps{#1}}}
+\pagenumbering{arabic}
+\renewcommand{\thepart}{\Roman{part}}
+\renewcommand*{\thefootnote}{\arabic{footnote}}
+
+\newcommand{\printpublication}[1]{{\setlength{\leftskip}{1cm}\vskip5mm
+\AtNextCite{\defcounter{maxnames}{99}}\fullcite{#1} \vskip5mm}}
+
+\input{preamble-notation}
+
+\setcounter{chapter}{-1}
+
+\cleardoublepage % avoid problems with pdfbookmark
+\phantomsection  % avoid problems with pdfbookmark
+\part*{Prologue}
+
+\input{chapters/par0_chp0_introduction}
+
+\cleardoublepage
+\phantomsection
+\part{Preliminaries}\label{par:prelimininaries}
+
+\input{chapters/par1_chp1_gaussian_processes}
+\input{chapters/par1_chp2_discrete_time_optimal_control}
+\input{chapters/par1_chp3_adaptive_control}
+
+\cleardoublepage
+\phantomsection
+\part{Nonparametric Disturbance Correction}
+\label{par:predictive-disturbance-control}
+
+\input{chapters/par2_chp1_disturbance_prediction}
+\input{chapters/par2_chp2_telescope_control}
+\input{chapters/par2_chp3_phd_guiding}
+
+\cleardoublepage
+\phantomsection
+\part{Nonlinear Dual Control}\label{par:dual-control}
+
+\input{chapters/par3_chp1_dual_control}
+\input{chapters/par3_chp2_nonlinear_extensions}
+\input{chapters/par3_chp3_building_control}
+
+\cleardoublepage
+\phantomsection
+\part*{Epilogue}
+
+\input{chapters/par4_chp1_conclusions}
+
+% *******************************************************
+% Backmatter
+% *******************************************************
+
+\appendix
+\cleardoublepage
+\phantomsection
+\part*{Appendix}
+
+\input{chapters/appendix}
+
+% *******************************************************
+% Other Stuff in the Back
+% *******************************************************
+
+\cleardoublepage\include{frontback/Bibliography}
+% \cleardoublepage\include{frontback/CurriculumVitae}
+\cleardoublepage\include{frontback/Publications}
+\cleardoublepage\include{frontback/Colophon}
+
+% *******************************************************
+% If you're depressed from writing, watching this helps:
+% https://www.youtube.com/watch?v=Awf45u6zrP0
+% *******************************************************
+\end{document}

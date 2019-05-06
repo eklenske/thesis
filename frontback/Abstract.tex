@@ -1,0 +1,132 @@
+%*******************************************************
+% Abstract
+%*******************************************************
+%\renewcommand{\abstractname}{Abstract}
+\pdfbookmark[1]{Abstract}{Abstract}
+\begingroup
+% \let\clearpage\relax
+\let\cleardoublepage\relax
+
+\chapter*{Abstract}
+
+Automatic control is an important aspect of modern technology, and many devices
+we use on a daily basis are using automatic control for actuation and
+decision-making. However, many advanced automatic control methods need a model
+of the system to control---a mathematical representation of the system's
+behavior. These models are not always easy to come by because of the underlying
+complexity of the system or the required measurement precision. Therefore,
+often a big portion of time is used for identification and tuning of these
+models.
+
+Machine learning methods with the available regression and inference
+frameworks offer a new potential in the combination with model-based control
+methods to speed up, or even entirely automate, the process of model-creation,
+identification and tuning. This potential similarly extends to disturbance
+prediction: Methods from time-series forecasting can be used to infer a
+model of the environmental disturbances, which then can be used in predictive
+control methods.
+
+The first concept covered in this thesis is the identification of quasiperiodic
+models for disturbance forecasting. Quasiperiodic disturbances are encountered
+in many applications that are affected by the ubiquitous day-night-cycle,
+revolving mechanical parts or recurring motions from biological objects.
+Being able to forecast disturbances, such as the outside air temperature,
+recurring gear errors or the beating motion of a heart, can help to increase
+control performance of the affected systems, especially in combination with
+model predictive control. In this thesis a quasiperiodic Gaussian process
+regression framework is used to learn and to predict periodic disturbances. A
+subsequent reference tracking model predictive controller then uses these
+predictions to control the system to a higher precision. The benefits of using
+this method are not only shown with simulated experiments, but also on
+hardware, on a telescope tracking setup in the laboratory. Since the
+development of this method was driven by a real problem in astronomical imaging,
+it is described how the method was implemented as a software solution. The
+advantage of the disturbance prediction method is shown on telescope tracking
+experiments in the field. The use of automatically identified quasiperiodic
+Gaussian process models makes it possible to use disturbance forecasting on a
+variety of systems not necessarily known at modeling time.
+
+The second concept presented in this thesis is nonlinear dual control. While
+methods for simultaneous identification and control were published already in
+the 1960s, most approaches are either too complex to be used in practice or too
+simple to retain all critical features of the original dual control framework:
+\emph{caution}, \emph{exploration} and \emph{selectiveness}. The dual control
+framework in this thesis is based on one approximation to the---theoretically
+ideal, but fundamentally intractable---optimal dual control problem. So far
+being used for linear systems only, this framework is extended to nonlinear
+systems. This is done by employing regression methods from machine learning;
+namely parametric regression, Gaussian process regression and neural network
+regression. Furthermore, the framework, which was originally only suitable for
+systems with quadratic cost, is extended to a general cost setting. This makes
+it possible to apply dual control to problems of economic cost. An exemplary
+application to a nonlinear building control problem shows the potential that
+dual control offers for real world applications. Overall, the presented
+extensions make it possible to use approximation-based dual control in the
+context of nonlinear regression models and flexible cost structures.
+
+\clearpage
+
+\begin{otherlanguage}{ngerman}
+\pdfbookmark[1]{Zusammenfassung}{Zusammenfassung}
+\chapter*{Zusammenfassung}
+
+Regelungstechnik ist ein wichtiger Bestandteil der modernen Technik, und viele
+Geräte, die wir täglich nutzen, arbeiten nur mit Hilfe von Reglern zuverlässig.
+Viele moderne Regler benötigen dynamische Modelle---mathematische
+Beschreibungen des Systemverhaltens---um zu funktionieren. Leider ist es
+aufgrund der Komplexität und der erforderlichen Messgenauigkeit nicht immer
+einfach, diese Modelle zu erstellen. Deshalb ist die
+Sys\-tem\-iden\-ti\-fi\-ka\-ti\-on und das Anpassen der Modelle an die realen
+Begebenheiten oftmals mit einem hohen Zeiteinsatz verbunden.
+
+Methoden des maschinellen Lernens bieten die Möglichkeit, den Prozess der
+Modellierung und Anpassung zu beschleunigen oder gänzlich zu automatisieren.
+Dieses Potential gilt auch für Methoden zur Vorhersage von Störungen:
+Algorithmen zur Zeitreihenvorhersage können genutzt werden, um den zukünftigen
+Verlauf externer Störungen vorherzusagen. Diese Vorhersagen können anschließend
+in der modellprädiktiven Regelung genutzt werden, um die Regelgenauigkeit zu
+verbessern.
+
+Das erste Konzept, welches in dieser Arbeit behandelt wird, ist die
+Identifikation von qua\-si\-pe\-ri\-o\-disch\-en Modellen für die Vorhersage
+von Störungen. Quasiperiodische Störungen findet man in vielen Anwendungen,
+insbesondere bei solchen, die vom Tag- und Nacht-Zyklus, rotierenden
+mechanischen Teilen oder anderen periodischen Bewegungen abhängen. Die
+Möglichkeit, Störungen wie die Außentemperatur, Getriebefehler oder das
+Schlagen eines Herzens vorherzusagen, kann die Regelgenauigkeit der betroffenen
+Systeme erheblich verbessern. In dieser Arbeit wird ein quasiperiodischer
+Gauß-Prozess eingesetzt, um periodische Störungen zu modellieren und
+vorherzusagen. Ein Referenzfolgesystem auf Basis modellprädiktiver Regelung
+nutzt diese Vorhersagen, um die Nachführgenauigkeit des Reglers zu verbessern.
+Die Vorteile dieser Methode werden nicht nur mit simulierten Experimenten,
+sondern auch auf einem mechanischen Versuchsträger, einem Teleskop-Aufbau im
+Labor, gezeigt. Für die Verbesserung der Regelung von Teleskopen in der
+Astrophotographie wurde der Algorithmus in einer Softwarelösung implementiert
+und der Nutzen der Störungsvorhersage mit Experimenten im Feldversuch
+demonstriert. Mit dieser Softwarelösung ist es nun möglich, die
+Störungsvorhersage auf einer Vielzahl von Systemen zu nutzen, die zur Zeit der
+Modellierung nicht notwendigerweise bekannt sein müssen.
+
+Das zweite Konzept in dieser Arbeit ist die nichtlineare duale Regelung.
+Während Methoden für die zeitgleiche Identifikation und Regelung dynamischer
+Systeme schon in den 1960er-Jahren publiziert wurden, sind die meisten Ansätze
+entweder zu komplex um in der Praxis eingesetzt zu werden, oder zu einfach um
+alle wichtigen Eigenschaften der dualen Regelung zu erhalten: \emph{Vorsicht},
+\emph{Exploration} und \emph{Selektivität}. Der Ansatz in dieser Arbeit basiert
+auf einer Approximation des---theoretisch idealen, aber praktisch nicht
+lösbaren---optimalen dualen Regelungsproblems. Diese bisher nur für lineare
+Systeme eingesetzte Methode wird auf nichtlineare Modelle erweitert. Dies wird
+durch die Nutzung verschiedener nichtlinearer Regressionsmethoden erreicht:
+parametrische Regression, Gauß-Prozess-Regression und Regression auf Basis
+neuronaler Netze. Weiter wurde der Ansatz, der bisher nur für Systeme mit
+quadratischen Kosten nutzbar war, auf allgemeine Kostenstrukturen erweitert.
+Dies ermöglicht es, duale Regelung auch auf Probleme mit ökonomischen Kosten
+anzuwenden. Eine beispielhafte Anwendung auf nichtlineare Gebäuderegelung zeigt
+das Potential, welches duale Regelung für praktische Anwendungen bietet.
+Insgesamt machen es die vorgestellten Erweiterungen möglich, approximative duale
+Regelung im Kontext nichtlinearer Regressionsmodelle und flexiblen
+Kostenstrukturen einzusetzen.
+
+\end{otherlanguage}
+
+\endgroup

@@ -1,0 +1,140 @@
+% own packages
+
+\usepackage{amstext,amssymb}
+\usepackage{microtype}
+\usepackage{nicefrac}
+\usepackage{booktabs}
+
+\usepackage[plain]{algorithm}
+\usepackage{algpseudocode}
+
+
+% own preamble stuff
+\newcommand{\unit}[1]{\ensuremath{\,\mathrm{#1}}}
+\newcommand{\as}{$''$}
+
+%% special symbols
+
+% to avoid warnings, copy only two symbols from stmaryrd
+\DeclareSymbolFont{stmry}{U}{stmry}{m}{n}
+\DeclareMathSymbol\leftarrowtriangle\mathrel{stmry}{"5E}
+\DeclareMathSymbol\rightarrowtriangle\mathrel{stmry}{"5F}
+\renewcommand{\gets}{\operatorname*{\leftarrowtriangle}}
+\renewcommand{\to}{\operatorname*{\rightarrowtriangle}}
+
+\newcommand{\const}{\operatorname{const}}
+
+%% abbreviations
+\newcommand{\iid}{i.\,i.\,d.\ }
+\newcommand{\eg}{e.\,g.,\ }
+\newcommand{\ie}{i.\,e.\ }
+\newcommand{\cf}{cf.\ }
+\newcommand{\aka}{a.\,k.\,a.\ }
+\newcommand{\wrt}{w.\,r.\,t.\ }
+\newcommand{\ts}{\textsection}
+
+% COLOR DEFINITIONS %%%%%%%%%%%
+
+\definecolor{lred}{RGB}{200,0,0}
+\definecolor{dred}{HTML}{7B332F} % PN red
+\definecolor{dre}{HTML}{7B332F} % PN red
+\definecolor{dblu}{HTML}{003e7d} % ETH blue
+\definecolor{blu}{HTML}{003e7d} % ETH blue
+\definecolor{lblu}{RGB}{125,125,255}
+\definecolor{lgr}{RGB}{50,200,157}
+\definecolor{lgre}{RGB}{50,200,157}
+\definecolor{dgra}{RGB}{50,50,50}
+\definecolor{mgra}{RGB}{100,100,100}
+\definecolor{gra}{RGB}{100,100,100}
+\definecolor{lgra}{RGB}{220,220,220}
+\definecolor{MPG}{RGB}{017,102,086} % MPG green
+\definecolor{dgr}{RGB}{017,102,086} % MPG green
+\definecolor{dgre}{RGB}{017,102,086} % MPG green
+\definecolor{ora}{HTML}{FF9933}
+
+\definecolor{AMPurple}{HTML}{663366}
+\definecolor{Burgundy}{HTML}{993333}
+\definecolor{Coffee}{HTML}{7B6049}
+\definecolor{ForestGreen}{HTML}{005826}
+\definecolor{Lavender}{HTML}{6E6AB1}
+\definecolor{PSLightBlue}{HTML}{7DA7D9}
+
+\definecolor{viridis-start}{rgb}{0.96489,0.90232,0.12394}%
+\definecolor{viridis-end}{rgb}{0.26700,0.00487,0.32942}%
+
+\newcommand{\dgr}[1]{{\color{MPG} #1}}
+\newcommand{\gra}[1]{{\color{mgra} #1}}
+\newcommand{\dre}[1]{{\color{dred} #1}}
+\newcommand{\ora}[1]{{\color{ora} #1}}
+\newcommand{\blu}[1]{{\color{dblu} #1}}
+
+%% PGFPLOTS
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+\newlength\figureheight
+\newlength\figurewidth
+\setlength{\figurewidth}{0.85\columnwidth}
+\setlength{\figureheight}{0.618\figurewidth} % the golden ratio
+
+%% TIKZ
+\usepackage{tikz}
+% \usetikzlibrary{tikzmark}
+\usetikzlibrary{fadings}
+\usetikzlibrary{arrows,shapes,plotmarks,decorations.pathmorphing}
+\usetikzlibrary{circuits}
+\usetikzlibrary{intersections}
+\usetikzlibrary{scopes, arrows, fadings, patterns}
+% \usetikzlibrary{arrows.meta}
+\usetikzlibrary{%
+    decorations.pathreplacing,%
+    decorations.pathmorphing%
+}
+\usetikzlibrary{positioning}
+\usetikzlibrary{backgrounds}
+\tikzset{>=stealth'}
+% \tikzset{>=Triangle[open]} % nicer arrow heads, need arrows.meta library
+\tikzstyle{graphnode} =
+   [circle,draw=black,minimum size=22pt,text centered,text
+     width=22pt,inner sep=0pt]
+\tikzstyle{var}   =[graphnode,fill=white]
+\tikzstyle{obs}   =[graphnode,fill=black,text=white]
+\tikzstyle{act}   =[rectangle,draw=black,text=white,minimum
+size=22pt,text centered, text width=22pt,inner sep=0pt]
+\tikzstyle{fac}   =[rectangle,draw=black,fill=black!25,minimum size=5pt]
+\tikzstyle{facprior} =[rectangle,draw=black,fill=black,text=white,minimum
+size=5pt]
+\tikzstyle{edge}  =[draw=white,double=black,thick,-]
+\tikzstyle{prior} =[rectangle, draw=black, fill=black, minimum size=
+5pt, inner sep=0pt]
+\tikzstyle{dirprior} = [circle, draw=black, fill=black, minimum
+size=5pt, inner sep=0pt]
+
+%% TIKZ EXTERNALIZATION
+
+\usetikzlibrary{external} % load externalization library
+\tikzexternalize % do externalize, to drastically speed up compilation
+\tikzexternaldisable % disable for overlay pictures in the main file
+\tikzset{external/force  remake=false} % flip to make sure everything is built
+\tikzsetexternalprefix{tmp/} % create this folder first otherwise you get a non
+                             % - descript LaTeX error !
+% when compiling use `pdflatex-shell-escape paper.tex' to allow externalization
+
+% enable externalize only for tikz figures that live in individual files
+\newcommand{\inputTikZ}[1]{\tikzsetnextfilename{#1}{\tikzexternalenable\input{
+fig/#1.tikz}}}
+
+%% EXTRA PACKAGES
+
+\usepackage{pifont}
+
+%% MAGIC
+
+\usepackage{etoolbox}
+
+% patch pgfplots so that \label does the original job
+% tufte-book saves the original meaning of \label in
+% \@tufte@orig@label
+\makeatletter
+\patchcmd{\pgfplots@environment@opt}{\label}{\@tufte@orig@label}{}{}
+\makeatother
+

@@ -1,0 +1,690 @@
+\renewcommand{\u}{\mathbf{u}}
+
+\chapter{Discrete-Time Optimal Control}
+\label{ch:discrete-time-optimal-control}
+
+\lettrine{M}{odel-based} optimal control is successfully used in many
+control systems and poses a prerequisite for this thesis. Since the topic is
+rather broad, we only cover the topics relevant for this thesis.
+
+We briefly introduce linear time-invariant (LTI) systems and the concepts of
+stability and controllability (Section~\ref{sec:lti-systems}). For LTI systems,
+we describe different types of model-based optimal controllers: Dynamic
+programming based optimal control (Section~\ref{sec:dynamic-programming}) and
+model predictive control by constrained optimization
+(Section~\ref{sec:model-predictive-control}). We introduce the concept of
+receding horizon control (Section~\ref{sec:receding-horizon}) and describe some
+important extensions of discrete-time optimal control
+(Section~\ref{sec:doc-extensions}).
+
+\section{Linear Time-Invariant Systems}
+\label{sec:lti-systems}
+
+Linear time-invariant (LTI) systems are often used in model-based control due
+to their advantageous computational properties. Even though most systems
+are not linear, often a linear approximation to a nonlinear system offers good
+performance in the vicinity of the operating point.
+\cite[\ts2.7]{Ogata:2010:Modern}
+
+For this chapter, we use the common discrete-time LTI system
+\begin{equation}
+  \label{eq:lti-system}
+  x(t_{k+1}) = A x(t_k) + B u(t_k),\quad k\in\mathbb{N},
+\end{equation}
+where $t_k\in\Re$ denotes the $k$-th time instant relative to the
+sampling time $\Delta t$, $x\in\Re^{n_x}$ is the state, $A\in\Re^{n_x\times
+n_x}$ is the discrete-time state-transition matrix and $B\in\Re^{n_x\times n_u}$
+is the discrete-time input matrix.
+
+Starting from a continuous model
+\begin{equation}
+  \dot x(t) = A_c x(t) + B_c u(t),
+\end{equation}
+with $A_c$ and $B_c$ of appropriate size,
+the discrete-time model can be obtained by exact discretization
+\margincite{Friedland:2005:Control}\citenum[\ts3.2]{Friedland:2005:Control}.
+Throughout this thesis, we consider discrete-time systems, if not stated
+otherwise.
+
+\subsection{Stability and Controllability}
+
+Informally, \emph{stability} for linear systems can be viewed as the property
+of keeping the system in a bounded domain. For system
+\eqref{eq:lti-system} and $u(t)\equiv 0$, the state evolution starting from
+state $x(0)$ amounts to $A^k x(0)$ after $k$ time steps. This state evolution
+only is bounded for $k\to\infty$ if the absolute values of all eigenvalues
+$\lambda$ of the dynamics matrix $A$ are smaller than $1$.
+
+\begin{definition}[{\citenum[\ts4.3]{Ogata:1995:Discrete}}]
+\margincite{Ogata:1995:Discrete}%
+A discrete-time autonomous linear system is stable, if the eigenvalues
+$\lambda$ of the
+state transition matrix $A$ lie inside of the unit circle.
+\end{definition}
+
+While the stability property describes whether the system states experience
+infinite growth, \emph{controllability} describes whether the system can be
+moved from any bounded starting point to any bounded target point in the state
+space with a finite number of control actions.
+
+\begin{definition}[{\citenum[\ts6.2]{Ogata:1995:Discrete}}]
+\margincite{Ogata:1995:Discrete}%
+A discrete-time linear system is controllable, if the controllability matrix
+$\mathcal{C} = [B, AB, A^2B, \dots, A^{T-1}B]$ has full rank.
+\end{definition}
+
+\section{Optimal Control}
+
+While the definition of optimal control in the literature is intricate, this
+thesis focuses on a class of optimal controllers that are optimization-based.
+Depending on a chosen cost function, the goal of optimal control is to find
+the control inputs that minimize a cost criterion, e.g.,
+\begin{equation}
+  \label{eq:dp-cost}
+  J(x(t_k), \u) = l_T(x_T) + \sum_{i=0}^{T-1} l_i (x_i, u_i), \qq x_0 = x(t_k),
+\end{equation}
+where $l_i$ is the stage cost, $l_T$ is the terminal cost, $\u=[u_0,
+\dots, u_{T-1}]$ is the input trajectory, and $i=0\dots T$ is the time index
+along the horizon. The corresponding states $x_1, \dots, x_T$ are defined
+according to the discrete-time dynamics $x_{i+1} = A x_i + B u_i$, given the
+initial state $x_0$.
+
+Note the difference between the planning states in subset notation $x_i$ and the
+physical states in parenthesis notation $x(t_k)$, which is depicted in
+Figure~\ref{fig:mpc-notation}. The first planning state $x_0$ is identical to
+the current physical state $x(t_k)$.
+
+\begin{figure}
+  \inputTikZ{mpc_notation}%
+  \caption[Relation between physical states and planning states.]{Relation
+between physical states (denoted by $x(t_k)$) and planning states of the
+algorithm (denoted by $x_i$).}
+  \label{fig:mpc-notation}
+\end{figure}
+
+Depending on the problem at hand, different cost functions can be chosen for
+$l$. Usually quadratic cost is used for states and inputs in
+tracking problems, it is defined as
+\begin{equation}
+  l_i(x_i, u_i) = x_i\T \SC_i x_i + u_i\T \CC_i u_i,
+  \qq l_T (x_T) = x_T\T \SC_T x_T,
+\end{equation}
+where $\SC_i$ are symmetric positive semidefinite matrices and $\CC_i$ are
+a symmetric positive definite matrices.
+
+Linear cost is often used in systems of economic type, \eg for evaluating
+energy cost or monetary value, it is defined as
+\begin{equation}
+  l_i(x_i, u_i) = \sc_i\T x_i + \cc_i\T u_i, \qq l_T (x_T) = \sc_T\T x_T,
+\end{equation}
+where $\sc_i$ and $\cc_i$ are cost scaling vectors.
+
+An optimal controller finds the control input for the current time step
+by minimizing the cost \eqref{eq:dp-cost} with respect to the control inputs
+$\u$
+\begin{equation}
+  u^*(t_k) = u^*_0 \qqqq \u^* = \argmin_{\u} J(x(t_k), \u),
+\end{equation}
+where $u^*_0$ is the first element of the optimal control trajectory
+$\u^*$; optimality is denoted by $\cdot^*$.
+
+The optimization of the control inputs can be done in different ways. We
+highlight two commonly used approaches: dynamic programming
+(Section~\ref{sec:dynamic-programming}) and model predictive control
+(Section~\ref{sec:model-predictive-control}).
+
+\section{Dynamic Programming}
+\label{sec:dynamic-programming}
+
+The first optimization technique that we introduce for optimal control is
+dynamic programming\footnote{Note that, being coined earlier than the term
+``computer programming'', the term \emph{programming} usually stands for
+``optimization'' in the mathematical context. Nowadays this can be a bit
+confusing. See \citenum{Dantzig:2002:Linear} for a full explanation.}
+\margincite{Dantzig:2002:Linear} (DP), introduced by Richard Bellman
+\cite{Bellman:1957:Dynamic}. It is considered an important milestone for
+optimization and automatic control because it enabled the use of optimal
+planning and optimal control for many systems where this was too hard a problem
+before. A comprehensive overview on the topic is given by
+\textcite{Bertsekas:2005:Dynamic}.
+
+Dynamic programming speeds up optimization in dynamical systems by breaking down
+the overall optimization problem into smaller subproblems that are quickly
+solved. The drawback is that, since dynamic programming for continuous
+systems only works efficiently for problems with closed-form solution, it
+can not be straightforwardly used for systems with constraints. In such cases,
+the more general model predictive control approach
+(Section~\ref{sec:model-predictive-control}) can be used.
+
+\subsection{The Dynamic Programming Equation}
+\label{sec:bellmans-equation}
+
+The fundamental idea behind dynamic programming is the \emph{principle of
+optimality}: Informally it means that, for any given state of the system, the
+optimal action only depends on the state and not on the way this state
+was reached. This is an obvious property of route planning problems (illustrated
+in Figure~\ref{fig:route-planning}): The optimal route from any point on the way
+between start and destination does not depend on the locations visited before.
+Once a certain state is reached, only the way from there to the destination is
+relevant.
+
+\begin{marginfigure}
+  \inputTikZ{route_planning}
+  \caption[Simple routing problem.]{Simple routing problem. A student wants
+to go from Zurich (Z) to Stuttgart (S). No matter which of the many possible
+routes he takes to the intermediate town H, the rest of the problem is identical
+to the problem of finding the shortest path from H to S.}
+  \label{fig:route-planning}
+\end{marginfigure}
+
+In the light of the principle of optimality, the optimal cost for the
+cost function \eqref{eq:dp-cost} can be written in the form of nested
+minimizations
+\begin{multline}
+  J^*(x(t_k)) = \min_{\u} J(x(t_k), \u) \\= \min_{u_0}\left[
+  l_0(x_0, u_0) + \min_{u_{1}}
+  \left[ l_{1}(x_{1}, u_{1}) + \dots \right] \right],
+\end{multline}
+where $x_0 = x(t_k)$, and $x_{i+1} = Ax_i + Bu_i$. This reformulation is
+possible because the inner part (the truncated subproblem starting from $i=1$)
+does not depend on the optimization variable $u_0$ of the outer part. Replacing
+the optimal cost of the inner subproblem by $J_{1}^*(x_1)$, we obtain
+\begin{equation}
+  J_0^*(x_0) = \min_{u_0}\left[ l_0(x_0, u_0) + J^*_{1}(x_{1})\right].
+\end{equation}
+More generally, we can write this as the recursive dynamic programming equation
+\cite[\ts1.3]{Bertsekas:2005:Dynamic}
+\begin{equation}
+  \label{eq:dp}
+  J_i^*(x_i) = \min_{u_i}\left[ l_i(x_i, u_i) + J^*_{i+1}(x_{i+1})\right],
+\end{equation}
+where $J_i^*$ is the optimal accumulated cost from time step $i$ to the end
+of the horizon, and $l_i$ is the cost for the current state and input.
+
+Using this formulation stresses the fact that the optimal cost-to-go $J^*_{i+1}$
+only depends on the next state and not on past states. This makes it possible
+to break down the optimization problem into small subproblems, every
+subproblem depending only on the current state.
+
+\subsection{The Finite-Horizon Linear Quadratic Regulator}
+\label{sec:dp-control}
+
+Most quadratic optimization problems in dynamic settings can be broken down
+into smaller subproblems with the dynamic programming equation. Consider the
+dynamical system \eqref{eq:lti-system} and quadratic cost over a horizon $0
+\dots T$:
+\begin{equation}
+  \label{eq:lqdp-cost}
+  J (x_0, \u) = x_T\T \SC_T x_T + \sum_{i=0}^{T-1} \left( x_i\T \SC_i x_i +
+  u_i\T \CC u_i\right),
+\end{equation}
+where the state weights $\SC_i$ are symmetric positive semidefinite matrices and
+the input weight $\CC_i$ is a symmetric positive definite matrix. In order to
+obtain the overall minimizing input trajectory $\u^*$, a large optimization
+problem needs to be solved.
+
+However, using the recursive formulation originating from the DP equation
+makes it possible to solve this optimization problem with low computational
+budget. This formulation implicitly exploits the sparse structure of the
+optimization problem due to the Markov characteristic of the dynamic system.
+
+For the last time step, the cost simply is
+\begin{equation}
+  J_T(x_T) = x_T\T \SC_T x_T = x_T\T \VM_T x_T,
+\end{equation}
+where $\VM_T$ is the quadratic value matrix, initialized at the last time step.
+Using the dynamic system equation \eqref{eq:lti-system} in the DP equation
+\eqref{eq:dp} we can compute the value matrix $\VM_\i$ recursively, resulting in
+the discrete-time Riccati equation (DRE) \cite[\ts4.1]{Bertsekas:2005:Dynamic}
+\begin{equation}
+  \label{eq:dp-recursion}
+  \VM_\i =  A\T \VM_{\i+1} A - A\T \VM_{\i+1} B
+  \left(B\T \VM_{\i+1} B + R_\i\right)\inv B\T
+  \VM_{\i+1} A + \SC_\i.
+\end{equation}
+The DRE not only defines the optimal cost-to-go depending on the current state
+\begin{equation}\vspace{-\baselineskip}
+  J_0^*(x(t_k)) = x_0\T \VM_0 x_0, \qq x_0 = x(t_k),
+\end{equation}
+but also the optimal control law
+\begin{equation}
+  \label{eq:dp-policy}
+  u_0^*(x(t_k)) = -\left(B\T \VM_1 B + R_0\right)\inv B\T \VM_1 A x_0,
+  \qq x_0 = x(t_k),
+\end{equation}
+which is called the finite-horizon linear quadratic regulator (f-LQR).
+
+Note that this equation defines a control \emph{policy} for each time step up
+to the horizon, which returns an optimal control \emph{action} for the states
+$x_i = x(t_{k+i})$. This is important for systems under uncertainty: An optimal
+plan consisting of pre-computed control actions can fail when the states change
+unexpectedly only by a small amount. A policy-based optimal controller, on the
+other hand, can deal with state uncertainties by calculating the optimal action
+based on the current state in each time step.
+
+\subsection{The Infinite-Horizon Linear Quadratic Regulator}
+
+For continuously running systems, the optimal controller should
+optimize the cost up to an infinite horizon. In practice this is not possible
+because of the infinite number of recursion steps that would need to be
+carried out. Letting $\HL \to \infty$ and assuming constant cost $\SC_\i = \SC\;
+\forall\i$, $\CC_\i = \CC\; \forall\i$ in the discrete-time Riccati equation
+\eqref{eq:dp-recursion} results in the \emph{algebraic Riccati equation}
+\begin{equation}
+  \VM_\infty = A\T \VM_\infty A - A\T \VM_\infty B \left(B\T \VM_\infty
+B + R \right)\inv B\T \VM_\infty A + \SC,
+\end{equation}
+which has a steady-state solution if the pair $(A,B)$ is
+controllable.~\cite{Bertsekas:2005:Dynamic}\iss The steady-state solution can
+be found, \eg by iterating Equation~\eqref{eq:dp-recursion} until convergence,
+or by the Schur method \cite{Laub:1979:Schur}. The static feedback law
+\begin{equation}
+  u_\infty^*(x(t_k)) = -\left(B\T \VM_\infty B + R\right)\inv B\T \VM_\infty A
+  x(t_k) \ce Lx(t_k)
+\end{equation}
+is usually called infinite-horizon linear quadratic regulator ($\infty$-LQR)
+and is an instance of optimal static feedback control for a steady state. The
+$\infty$-LQR is popular in practice because the state-feedback controller has
+negligible computational cost once the feedback-gain $L$ is computed. Therefore,
+using the $\infty$-LQR is a powerful design method for state-feedback
+controllers if a model of the system is available and there are no constraints.
+
+\subsection{Reference Tracking with Lookahead}
+\label{sec:dp-reference-tracking}
+
+Controllers often have the goal of controlling the system to a setpoint or
+``desired state.'' Especially in linear systems, the optimal control problem can
+be transformed easily so that the goal state is the origin. In that case,
+applying standard $\infty$-LQR control can be enough to create a feedback
+controller.
+
+For many applications, however, it is not enough to keep the state close to a
+setpoint. In robotics, for example, being able to track a desired reference
+trajectory $\mathbf{x}^\text{ref}$ is important for the execution of a planned
+motion. If the reference trajectory is known in advance, the dynamic
+programming equations can be implemented accordingly. Carrying out the
+finite-horizon dynamic programming calculations including a future reference
+trajectory entails the necessity of using a quadratic ansatz that also includes
+linear terms in the value function:
+\vspace{-\baselineskip}
+\begin{equation}
+  J_i^*(x_i) = x_i\T \VM_\i x_i + \vv_i\T x_i + \const.
+\end{equation}
+
+For reference tracking dynamic programming, the recursive equations for
+calculating $\VM_\i$ and $\vv_\i$ are (see Appendix~\ref{app:reference-dp}):
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{subequations}
+\begin{alignat}{3}
+    \VM_\i &= A\T\left(\VM_{\i+1}-\VM_{\i+1}B\left(B\T \VM_{\i+1} B
+        + R_\i\right)\inv B\T \VM_{\i+1} \right) A + \SC_\i \qqqq & \VM_\HL &=
+  \SC_\HL\\
+  \vv_\i &= A\T\left(\vv_{\i+1}-\VM_{\i+1}B\left(B\T
+        \VM_{\i+1} B + R_\i\right)\inv B\T \vv_{\i+1} \right)
+     - \SC_\i x^\text{ref}_i \qqqq & \vv_\HL &= -\SC_\HL x^\text{ref}_\HL,
+\end{alignat}
+\end{subequations}
+\end{fullwidth}
+and the optimal control is defined by
+\begin{equation}
+  u_0^*(x(t_x)) = u_0^*(x_0) = -\left(B\T \VM_{1} B + R_0\right)\inv
+  \left[ B\T \VM_1 A x_0 + \vv_1 \right].
+\end{equation}
+
+The important advantage of finite-horizon reference tracking lies in the
+``lookahead'' (or ``preview'') property. A static state-feedback controller,
+such as the $\infty$-LQR, can only ever act based on the current
+deviation from the desired setpoint. This means that every change in reference
+can only be taken into account after it occurs. A controller with
+access to the future trajectory, on the other hand, can already act in a
+feed-forward fashion, which often results in better system behavior. An example
+of this is shown in Figure~\ref{fig:lookahead-comparison}, where the pure
+feedback controller ``waits'' much longer and acts more abruptly than the
+dynamic programming based optimal controller, which benefits from the lookahead
+property.
+
+\begin{figure*}
+  \setlength\figurewidth{0.91\textwidth}%
+  \setlength\figureheight{0.618\figurewidth}%
+  \pgfplotsset{yticklabel style={text width=1.8em,align=right}}%
+  \footnotesize%
+  \inputTikZ{pendulum_horizontal_lookahead}%
+  \caption[Comparison between the control behavior of $\infty$-LQR and f-LQR.]
+{Comparison between the control behavior of $\infty$-LQR (left) and f-LQR
+  (right) for an inverted pendulum on a cart. The reference position jumps at
+  0.5\unit{s} from -0.5 to 0.5. The pendulum is actuated, with its
+  base moving along the rail. The pendulum is plotted for
+  each sampling time, where the color indicates the time. The states and input
+  are plotted underneath, where $x$ is the horizontal position, $\theta$ the
+  angle and $u$ the input.}
+  \label{fig:lookahead-comparison}
+\end{figure*}
+
+\subsection{Stochastic Systems}
+\label{sec:dp-stochastic}
+
+When considering stochastic control systems of the form
+\begin{subequations}
+\begin{alignat}{3}
+  \label{eq:dp-dyn-sto}
+  x(t_{k+1}) &= A x(t_k) + B u(t_k) + \dist(t_k) \qq &\dist(t_k) &\sim
+    \N(0,\DC)\kern-1.5em\\
+  y(t_k) &= C x(t_k) + \noise(t_k) \qq &\noise(t_k) &\sim \N(0,\NC),\kern-1.5em
+\end{alignat}
+\end{subequations}
+the state evolution is not deterministic any more, and since states are not
+fully measurable, there is uncertainty about the true states $x(t_k)$. The
+\margincite{Kalman:1960:New}\margincite{Sarkka:2013:Bayesian}%
+optimal solution in the linear case is to maintain a Gaussian belief over the
+states by Kalman filtering
+\citenum{Kalman:1960:New, Sarkka:2013:Bayesian}.
+
+In order to account for the future uncertainty along the control horizon, we
+denote the Kalman filtered state covariance as $\Sigma_{i+1|i}$ after prediction
+from time step $i$ and as $\Sigma_{i+1|i+1}$ after updating with the measurement
+$y_{i+1}$ made at time step $i+1$. Of course, the future measurement is not yet
+available, but the predictive covariance is deterministic and can therefore be
+incorporated in the calculations below.
+
+For the uncertain system, the cost function is defined in expectation:
+\begin{align}
+  J_T (x_T) &= \underset{x_T}{\Exp}\left\{ x_T\T \SC_T x_T \right\}\\
+  J_i (x_i, u_i) &= \underset{x_i}{\Exp}\left\{ x_i\T \SC_i x_i + u_i\T R_i u_i
+  + J^*_{i+1}(x_{i+1})\right\}.
+\end{align}
+After some linear algebra manipulations (Appendix~\ref{app:stochastic-dp}), we
+obtain the same recursion for the value matrix \eqref{eq:dp-recursion}, and
+the same control policy \eqref{eq:dp-policy}. Nonetheless, the cost function is
+different in this case:
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  J^*_i(x_i) = \underset{x_i}{\Exp}\left\{ x_i\T \VM_\i x_i \right\}
+    + \tr\left\{ \sum_{j=i}^{T-1} \left[\Sigma_{j+1|j} - \Sigma_{j+1|j+1}
+  \right] \VM_{j+1} \right\}
+  + \tr\left\{ \sum_{j=i}^{T} \SC_j\Sigma_{j|j} \right\}.
+\end{equation}
+\end{fullwidth}
+The additional terms arising from uncertainty are usually not considered, since
+they do not influence the control policy.~\cite[\ts5.2]{Bertsekas:2005:Dynamic}
+
+\section{Model Predictive Control}
+\label{sec:model-predictive-control}
+
+Constraints are ubiquitous. Finite actuator power and other physical
+limitations are encountered in many practical systems. Model predictive control
+(MPC) is a framework that can explicitly incorporate such constraints. MPC is
+similar to dynamic programming in the way the model is used for predictions;
+the fundamental difference is the optimization procedure. While in dynamic
+programming the Bellman principle is used to construct an optimal policy for
+each time step recursively, in MPC the entire optimization problem is solved at
+once, which makes it much easier to incorporate constraints. However, this
+comes at a price, since dealing with the full optimization problem and the need
+for constrained optimization methods makes the overall procedure computationally
+demanding.
+Therefore, MPC originally was used only in slow control systems,
+\margincite{Maciejowski:2002:Predictive}%
+\margincite{Rossiter:2003:Model}%
+\margincite{Rawlings.Mayne:2009:Model}%
+\eg in the processing industry. Nowadays, MPC has found widespread use, partly
+due to the increasing computational power available in control systems.
+
+Model predictive control constitutes a large field of research. Comprehensive
+overviews can be found, \eg in \citenum{Maciejowski:2002:Predictive},
+\citenum{Rossiter:2003:Model}, \citenum{Rawlings.Mayne:2009:Model}.
+
+\subsection{Constrained Finite-Time Optimal Control}
+
+In addition to the system definition \eqref{eq:lti-system}, we consider
+constraints on states and inputs resulting in the constrained LTI system
+\begin{subequations}
+\begin{align}
+  &x(t_{k+1}) = Ax(t_k) + Bu(t_k)\\
+  &u(t_k) \in \mathbb{U}\q\forall k, \qq x(t_k) \in \mathbb{X} \q\forall k,
+\end{align}
+\end{subequations}
+where $\mathbb{U}$ and $\mathbb{X}$ are polytopic sets defining the input and
+state constraints. Taking these constraints into account, dynamic programming
+has no closed form solution, but the more general MPC methods can be used.
+
+The standard case of a model predictive control problem is to find the optimal
+state and input trajectory for the constrained dynamical system
+\begin{subequations}
+\label{eq:basic-mpc}
+\begin{alignat}{3}
+  (\mathbf{x}^*, \u^*)=\underset{\mathbf{x,u}}{\argmin} \quad
+&l_T(x_T) + \sum_{i=0}^{T-1} l_i(x_i, u_i)  \label{eq:cost-sum}\\
+\text{s.t.}\quad
+& x_0 = x(t_k) \\
+& x_{i+1} = A x_i + B u_i \q &&i=0\dots T-1 \kern-1.5em
+\label{eq:equality-constraint}\\
+& u_i \in \mathbb{U} \q &&i=0\dots T-1\kern-1.5em\\
+& x_i \in \mathbb{X} \q &&i=1\dots T
+\end{alignat}
+\end{subequations}
+where $\mathbf{x}:=[x_1, \dots, x_T]$ is the state trajectory and
+$\u:=[u_0, \dots, u_{T-1}]$ are the controls. After the optimization problem
+\eqref{eq:basic-mpc} is solved, the optimal control action $u^*(t_k) = u^*_0$
+can be extracted from the optimal control trajectory $\u^*$.
+
+An example of the different behaviors of unconstrained (f-LQR) and constrained
+(MPC) optimization under input saturation is shown in
+Figure~\ref{fig:pendulum-horizontal-constrained}. Not taking the input
+constraints into account leads to a failing experiment for the f-LQR controller.
+
+\begin{figure*}
+  \setlength\figurewidth{0.91\textwidth}%
+  \setlength\figureheight{0.618\figurewidth}%
+  \pgfplotsset{yticklabel style={text width=1.8em,align=right}}%
+  \footnotesize%
+  \inputTikZ{pendulum_horizontal_constrained_u}%
+  \caption[Comparison between the control behavior of f-LQR and MPC.]
+{Comparison between the control behavior of f-LQR (left) and MPC (right) for an
+inverted pendulum on a cart with constrained input ($-8 \leq u \leq 8$, enforced
+by clipping). The reference position jumps at 0.5\unit{s} from -0.5 to 0.5.
+Everything else as in Figure~\ref{fig:lookahead-comparison}.}
+  \label{fig:pendulum-horizontal-constrained}
+\end{figure*}
+
+\subsection{Optimization}
+
+In order to solve the MPC optimization problem with readily available
+optimization software (\eg \cite{Grant.Boyd:2014:CVX}, \cite{IBM:2016:CPLEX}),
+it is necessary to reformulate the MPC problem into standard forms. For
+example, most quadratic programming (QP) solvers use the problem formulation
+\begin{subequations}
+\begin{align}
+  \mathbf{z}^*=\underset{\mathbf{z}}{\argmin} \quad
+&\frac{1}{2} \mathbf{z}\T H \mathbf{z} + h\T \mathbf{z}\label{eq:opt-fcn}\\
+\text{s.t.}\quad
+& A_\text{eq} \mathbf{z} = b_\text{eq} \\
+& A_\text{in} \mathbf{z} \leq b_\text{in},
+\end{align}
+\end{subequations}
+where $\mathbf{z}$ is the vector that collects all optimization variables
+$x_{1\dots T}$ and $u_{0\dots N-1}$, $H$ defines the quadratic and $h$ the
+linear part of the quadratic cost function. The dynamics is encoded as equality
+constraints  with $A_\text{eq}$ and $b_\text{eq}$, state constraints as
+inequality constraints with $A_\text{in}$ and $b_\text{in}$.
+
+A comprehensive overview on optimization methods is given, \eg by
+\textcite{Nocedal.Wright:2006:Numerical}, or by
+\textcite{Boyd.Vandenberghe:2004:Convex}.
+
+\subsection{Reference Tracking}
+
+Until the end of the horizon, a change in reference can be
+incorporated by changing the cost function to the more general form
+\begin{subequations}
+\begin{align}
+  l_i(x_i, u_i) &= (x_i - x^\text{ref}_i)\T \SC_i (x_i - x^\text{ref}_i)
+  + u_i\T \CC_i u_i \\
+  l_T(x_T) &= (x_T - x^\text{ref}_T)\T \SC_T (x_T - x^\text{ref}_T),
+\end{align}
+\end{subequations}
+so that the cost function penalizes the deviation from the reference trajectory
+$\mathbf{x}^\text{ref}$. This leads to additional linear terms in the objective
+function of \eqref{eq:opt-fcn}.
+
+Again, it is important to note that this reference tracking can offer
+lookahead if the reference is known a-priori.
+
+\section{Receding Horizon Control}
+\label{sec:receding-horizon}
+
+Most control systems run indefinitely. Therefore, most model predictive
+controllers are implemented in a  receding horizon fashion: After each
+measurement, the optimal control problem is solved up to the end of the horizon,
+starting with the current state. Only the first control action is executed,
+after which the next measurement is made. Figure~\ref{fig:receding-horizon}
+depicts this procedure. The fixed-length horizon is advanced by one time step at
+each sampling time, hence the name ``receding horizon''.
+
+\begin{figure}
+  \resizebox{\columnwidth}{!}{
+  \inputTikZ{receding_horizon}
+  }
+  \caption[The receding horizon principle.]{The receding horizon principle. The
+optimal control is planned for the whole horizon, but only the first control
+action is executed on the system. After one sampling interval, the plan is
+calculated anew.}
+  \label{fig:receding-horizon}
+\end{figure}
+
+\subsection{Accounting for the Infinite Horizon}
+\label{sec:infinite-horizon}
+
+For a system running indefinitely, the cost objective in
+Equation~\eqref{eq:cost-sum} should be the infinite sum
+\begin{equation}
+  \sum_{i=0}^\infty l_i(x_i, u_i),
+\end{equation}
+but, of course, it is not possible to optimize this objective, due to the
+infinite number of variables. Instead, the basic MPC \eqref{eq:basic-mpc} is
+formulated with a receding horizon of finite length. This change in the
+objective function can lead to instabilities and performance loss. Therefore, it
+is often attempted to account for the infinite horizon MPC by adjusting the
+terminal weight matrix $\SC_\HL$ accordingly
+\cite[\ts6.2]{Maciejowski:2002:Predictive}, or by constraining the final state
+$x_T$ to be in a suitable feasible set.
+
+\subsubsection{The Riccati Terminal Weight}
+
+For the unconstrained linear quadratic problem, finding a steady-state solution
+for the infinite horizon cost is possible by carrying out the Riccati recursion
+to the steady-state solution (Section~\ref{sec:dynamic-programming}). This
+amounts to using the infinite-horizon LQR for the time steps after the horizon
+ends. The necessary terminal weight is obtained by solving the discrete-time
+algebraic Riccati equation
+\begin{equation}
+  \VM^\text{R}_\infty = A\T \VM^\text{R}_\infty A - (A\T
+\VM^\text{R}_\infty B)(R + B\T \VM^\text{R}_\infty  B)\inv(B\T
+\VM^\text{R}_\infty A) + \SC
+\end{equation}
+for the terminal weight $\SC_\HL = \VM^\text{R}_\infty$. The algebraic
+Riccati equation has a solution if the pair $(A,B)$ is
+controllable.~\cite[\ts4.1]{Bertsekas:2005:Dynamic}
+
+\subsubsection{The Lyapunov Terminal Weight}
+
+Another option for determining a terminal weight is to use the solution to the
+discrete-time Lyapunov equation
+\begin{equation}
+  \VM^\text{L}_\infty = A\T \VM^\text{L}_\infty A + \SC.
+\end{equation}
+Using $\SC_\HL = \VM^\text{L}_\infty$ as a terminal weight amounts to not
+issuing control actions after the end of the horizon. Along the horizon, this
+leads to more aggressive control behavior than the Riccati terminal weight.
+Because no control is used after the end of the horizon, the discrete-time
+Lyapunov equation only has a solution if $A$ is asymptotically
+stable.~\cite[\ts6.2]{Maciejowski:2002:Predictive}
+
+\section{Extensions}
+\label{sec:doc-extensions}
+
+Due to its simplicity in the mathematical formulation, discrete-time optimal
+control is a flexible framework that is easily extensible for specific needs.
+In addition to the reference tracking, which is somewhat different for dynamic
+programming and general MPC, two other extensions are used in this thesis: The
+use of disturbance predictions and nonlinear dynamics.
+
+\subsection{Incorporating Disturbance Predictions}
+
+Often there are disturbances in a control system that are known beforehand or
+can be predicted to a certain extend. Consider the dynamics
+\vspace{-\baselineskip}
+\begin{equation}
+  x(t_{k+1}) = A x(t_k) + B u(t_k) + d(t_k),
+\end{equation}
+with additional time-dependent disturbance $d(t_k)$.
+A prediction $\tilde d(t_k)$ of the disturbance can easily be incorporated by
+adding this disturbance prediction to the state-transition function used in the
+algorithm. For MPC, this means adding it to the equality constraint
+\eqref{eq:equality-constraint} and for DP this means adding it for all state
+transitions in the recursion \eqref{eq:dp}.
+
+If the disturbance can be predicted to high
+precision, this can increase the controller performance significantly.
+Disturbance prediction is frequently used, \eg for building control with MPC
+\cite{Oldewurtel:2010:Reducing}.
+
+\subsection{Nonlinear Dynamics}
+
+Standard MPC works well for linear systems because the underlying optimization
+problem usually results in an easy-to-solve form, \eg a quadratic program in
+the case of the common $\ell_2$ norm cost. Linear MPC is often also applied to
+nonlinear systems that are sufficiently linear close to the operating point.
+However, when a system is strongly nonlinear or needs to leave the area close to
+the linearization point, nonlinear MPC methods are necessary.
+
+There is a large body of literature on nonlinear MPC methods, see, \eg
+\cite{Kouvaritakis.Cannon:2001:Non}, \cite{Allgower.Badgwell.ea:1999:Nonlinear}
+for an overview of the topic.
+
+In this thesis we use the common approach of sequential linearization and
+optimization to solve the underlying nonlinear program. The resulting
+algorithm is sequential quadratic programming (SQP) or sequential linear
+programming (SLP), depending on the cost function.
+
+For a general discrete-time system of the form
+\begin{equation}
+  x(t_{k+1}) = f(x(t_k), u(t_k)),
+\end{equation}
+the linearization is done along the horizon for each time step
+\begin{equation}
+  \label{eq:linearisation}
+  x_{i+1} \approx f(\bar x_i, \bar u_i) +
+  \underbrace{\left.\frac{\de}{\de x_i} f\right|_{\bar x_i, \bar u_i}}_{A_i}
+  (x_i - \bar x_i) +
+  \underbrace{\left.\frac{\de}{\de u_i} f\right|_{\bar x_i, \bar u_i}}_{B_i}
+  (u_i - \bar u_i),
+\end{equation}
+where the Jacobians $A_i$ and $B_i$ are calculated along an existing trajectory.
+This trajectory can be initialized, \eg with a steady state, zero, or the
+optimized trajectory from the last time step. Equation~\eqref{eq:linearisation}
+can then be used to replace the equality constraint
+\eqref{eq:equality-constraint} to account for the nonlinear dynamics function.
+
+The linearization along the trajectory is done iteratively, usually several
+times per time step. However, for systems with sufficiently high control rate,
+it can be enough to linearize once per time step.~\cite{Diehl.ea:2005:Real}
+
+Using nonlinear MPC methods makes it possible to execute complex motions, such
+as the swing-up of an inverted pendulum on a cart
+(Figure~\ref{fig:pendulum-swingup}), that are not possible with linear MPC.
+The linear MPC fails in this case because the system dynamics is highly
+nonlinear between the two reference points.
+
+\begin{figure*}
+\setlength\figurewidth{0.94\textwidth}%
+  \setlength\figureheight{0.618\figurewidth}%
+  \pgfplotsset{yticklabel style={text width=1.8em,align=right}}%
+  \footnotesize%
+  \inputTikZ{pendulum_swingup_comparison}%
+  \caption[Comparison between the control behavior of linear MPC and
+  nonlinear MPC.]{Comparison between the control behavior of linear MPC (left)
+and nonlinear MPC based on SQP (right) for a swing-up of an inverted pendulum
+on a cart. The reference angle jumps from $\pi$ to $0$ at $t=0.5\unit{s}$. The
+linear MPC is linearized about the target position. Everything else as in
+Figure~\ref{fig:lookahead-comparison}.}
+  \label{fig:pendulum-swingup}
+\end{figure*}

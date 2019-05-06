@@ -1,0 +1,592 @@
+\chapter{Dual Control for Buildings}
+\label{ch:dual-control-for-buildings}
+
+\lettrine{B}{uilding climate control}
+% \margincite{IEA:2008:Energy}%
+is a problem that has raised significant attention in recent years, due to its
+potential impact on the world-wide energy consumption: A large amount of the
+globally consumed energy is used for buildings.~\cite{IEA:2008:Energy}\iss
+This has sparked recent interest in model predictive control (MPC) for buildings
+\margincite{Gwerder.Todtli:2005:Predictive}%
+\margincite{Oldewurtel.Parisio.ea:2010:Energy}%
+\margincite{Ma.Matusko.ea:2015:Stochastic}%
+\margincite{Aswani.Master.ea:2012:Reducing}%
+\citenum{Gwerder.Todtli:2005:Predictive, Oldewurtel.Parisio.ea:2010:Energy,
+Ma.Matusko.ea:2015:Stochastic, Aswani.Master.ea:2012:Reducing}, making use of
+predictions of the model as well as external error sources, such as weather
+conditions and occupancy. However, these techniques require a sufficiently
+accurate system model. As the parameters of the model generally vary with the
+building and potentially with time, parameter identification has to be performed
+individually for each building during operation, which can be expensive.
+
+Adaptive controllers offer the potential to obtain accurate models for a low
+energy footprint over the whole lifetime of the building. While passively
+learning adaptive control systems can only learn by evaluating past
+measurements, dual controllers, as presented in
+Chapters~\ref{ch:introduction-to-dual-control} and
+\ref{ch:nonlinear-extensions-to-dual-control}, can enhance the learning
+procedure by also reasoning about the effect of current actions on the future
+control performance. This way, dual control can make use of certain parts of
+the problem structure to identify the model more efficiently than purely
+passive control systems. For example, a dual controller can identify at times
+where the energy cost or demand is low (making use of real-time-pricing or
+day/night tariffs) to obtain more precise control at times of high control cost.
+
+Dual control has regained attention over the past few years, not only in
+combination with MPC \cite{Cheng.Haghighat.ea:2015:Robust}, but also in the use
+for building control \cite{Zacekova.Privara.ea:2013:Dual}. However, most of
+these methods are relying on explicit dual control techniques
+\cite{Filatov.Unbehauen:2000:Survey}, where the cost function is modified in a
+way to enforce exploration. In contrast, we favor an implicit dual control
+formulation \cite{Tse.Bar-Shalom:1973:Actively}, where the value of information
+emerges from the approximation to optimal dual control on the augmented system
+(see Chapter~\ref{ch:introduction-to-dual-control} for an overview of the
+overall method).
+
+In its classic form, the framework by \citetext{Tse.Bar-Shalom:1973:Actively}
+is not able to address aspects central to many modern control problems:
+nonlinear dynamics, constraints, and non-quadratic cost functions.
+In Chapter~\ref{ch:nonlinear-extensions-to-dual-control}, we extended the
+approximate dual control framework to nonlinear systems. In this chapter, we
+additionally address systems with constraints and non-quadratic cost functions.
+Dual control is particularly beneficial for systems with economic (linear) cost,
+since it can exploit time-varying cost structures to optimally identify the
+latent parameters of dynamical systems.
+
+After introducing the problem setting (Section~\ref{sec:building-problem}), we
+provide a procedure for using the method for economic cost and constrained
+systems using hierarchical tracking MPC and soft constraints
+(Section~\ref{sec:linear-systems-soft-constraints}). We apply the proposed
+technique to a simple building control problem and analyze the performance with
+respect to passively learning methods as well as simplistic dual control
+(Section~\ref{sec:building-climate-control}).
+
+\section{Problem Statement}
+\label{sec:building-problem}
+We consider the continuous-time system
+\begin{equation} \label{eq:continuous-system}
+  \dot x(t_k) = f(x(t_k), u(t_k), w(t_k)) + \xi(t_k),
+\end{equation}
+with state $x\in\Re^{n_x}$, input $u\in\Re^{n_u}$, disturbance $w\in\Re^{n_w}$
+and white noise $\xi\in\Re^{n_x}$. We assume that the dynamics $f$ are not
+known, but can be described up to Gaussian uncertainty by a general linear model
+with linear and nonlinear features $\phi$, and an unknown matrix $M$ of
+appropriate size:
+\begin{equation}
+  \label{eq:feature-linear-system}
+  \dot x(t_k) = M\phi(x(t_k),u(t_k),w(t_k)) + \xi(t_k).
+\end{equation}
+
+The linear part of the system can be discretized in numerous ways, but for
+maximal accuracy while retaining the possibility to directly calculate the
+Jacobian \wrt the parameters, we use element-wise zero-order-hold linearization:
+Each state dynamics is discretized as scalar differential equation,
+considering the other states as inputs. Using this method, we arrive at the
+discretized system
+\begin{equation}
+  \label{eq:discrete-system}
+  x_{\tk+1} = A_\tk x_\tk + B_\tk u_\tk + E_\tk w_\tk + M_\tk
+\phi^n(x_\tk,u_\tk,w_\tk) + \xi_\tk,
+\end{equation}
+with time index $\tk$, matrices $A_\tk$, $B_\tk$, $E_\tk$ of appropriate sizes
+and Gaussian disturbance $\xi_\tk\sim\N(0,\DC)$. The matrix $M_\tk$ is the
+result of a first-order Euler forward exponential integrator
+\cite{Hochbruck.Ostermann:2010:Exponential} of the nonlinear features $\phi^n$.
+For simplicity of notation, we subsume the non-zero elements of $A_\tk$,
+$B_\tk$, $E_\tk$ and $M_\tk$ into a parameter vector $\t_\tk$.
+The system is subject to possibly time-varying state and input constraints
+$x_\tk\in\X_\tk$ and $u_\tk\in\U_\tk$, where $\X_\tk\subset\Re^{n_x}$ and
+$\U_\tk\subset\Re^{n_u}$ are polytopes.
+
+\section{Non-Quadratic Cost and Constraints}
+\label{sec:linear-systems-soft-constraints}
+
+Classic approximate dual control algorithms were posed in the LQG setting,
+assuming linear dynamics, quadratic cost and Gaussian noise. In this setting,
+the optimal CE trajectory and the subsequent perturbation control can be
+obtained in closed form with dynamic programming because there is a recursive
+solution for the optimal controller at each time step.
+
+However, many control problems where dual control may have an important impact
+involve economic costs. An example is the considered application to building
+control, where the cost is linear (energy prices) and the inputs and states are
+constrained (bounds on the temperature, heating/cooling limits). In this
+setting, dynamic programming is computationally expensive, since there is no
+simple recursive solution to obtain a second-order approximation to the cost.
+
+In order to deal with more general cost structures and constraints, we
+therefore propose to use a common hierarchical tracking scheme: 1) An economic
+reference satisfying the constraints is computed using the CE system and
+standard MPC techniques; 2) the reference is tracked using an approximate dual
+controller, where state constraints are considered in the form of soft
+constraints. The details of this scheme are outlined in the following sections.
+
+\vskip\baselineskip
+\subsection{Economic Reference}
+
+The economic reference for the controller is generated by solving a
+discrete-time MPC problem for the CE system
+\begin{subequations}
+\label{eq:trackMPC}
+\begin{align}
+(\mathbf{x}^\text{ref},
+&\mathbf{u}^\text{ref})\coloneqq\underset{\mathbf{x,u}}{\argmin} \quad
+ l_N(x_N) + \sum_{i=0}^{N-1} l_i(x_i,u_i)  \\
+\text{s.t.}\quad
+& x_{i=0} = x_\tk \\
+& x_{i+1} = A_i x_i + B_i u_i + E_i w_i + M_i\phi(x_i,u_i,w_i) \\
+& x_i \in \X_i \\
+& u_i \in \U_i,
+\end{align}
+\end{subequations}
+where $l_i$ is the stage cost. This nonlinear MPC problem is solved with
+standard algorithms, depending on the cost structure, \eg sequential linear
+programming\footnote{Originally termed \emph{successive linear programming}, we
+use ``sequential'' for consistency.} \cite[\ts10.3]{Bazaraa:2013:Nonlinear}.
+
+\subsection{Soft Constraints and Uncertainty}
+\label{sec:soft-constraints}
+
+Assuming Gaussian uncertainty, hard constraint satisfaction can not be
+guaranteed. In order to capture the state constraints when tracking the
+reference, we introduce soft constraints. For constraints of the form
+$\X_\tk\coloneqq\{x_\tk\g P_\tk x_\tk\leq p_\tk\}$, these take the form
+\begin{subequations}
+\begin{align}
+  \label{eq:soft-constraints}
+  \ve_\tk(x_\tk) &= \max(P_\tk x_\tk - p_\tk, 0)\\
+  l^\text{c}_\tk(x_\tk) &= \ve_\tk(x_\tk)\T \SC_\tk \ve_\tk(x_\tk).
+\end{align}
+\end{subequations}
+With the $\max$-operator defined element-wise, $\ve_\tk$ captures the amount of
+constraint violation, while $\SC_\tk$ penalizes the constraint violation in an
+cost term that is added to the stage cost considered by the dual controller.
+
+In order to apply the approximate dual control scheme
+(Section~\ref{sec:optim-curr-contr}), it would be desirable to marginalize the
+Gaussian distributed state against the soft constraint penalty function. This
+calculation is of the form
+\begin{equation}
+  \intl_{-\infty}^\infty \ve_\tk(x_\tk)\T \SC_\tk \ve_\tk(x_\tk)
+\cdot \N(x_\tk; \hat x_\tk, \Sigma_\tk) dx_\tk,
+\end{equation}
+which has generally no closed-form solution because of the $\max$-operator in
+the definition of $\ve_\tk(x_\tk)$. Only when the mean $\hat x_\tk$ coincides
+with the constraint boundary there is a closed-form solution, amounting to
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+  \intl_{\hat x_\tk}^\infty (P_\tk x_\tk - p_\tk )\T \SC_\tk (P_\tk x_\tk -
+  p_\tk ) \cdot \N(x_\tk;
+  \hat x_\tk, \Sigma_\tk) d{x_\tk}
+  = \frac{1}{2}
+  \left[ (P_\tk \hat x_\tk - p_\tk )\T \SC_\tk (P_\tk \hat x_\tk - p_\tk ) +
+  \tr\left\{{\SC_\tk
+  \Sigma_\tk}\right\} \right].
+\end{equation}
+\end{fullwidth}
+For all states on the constraint boundary, this means that Gaussian
+marginalization of the soft constraints is equivalent to an additional quadratic
+tracking cost
+\begin{equation}
+  \label{eq:modified-tracking-cost}
+  \tilde l^\text{c}_\tk(x_\tk) = (x_\tk - x_\tk^\text{ref})\T \tilde \SC_\tk
+(x_\tk
+ - x_\tk^\text{ref})
+\end{equation}
+with $\tilde \SC_\tk = \frac{1}{2}\SC_\tk$. This can now be used to modify the
+second order approximation of the cost-to-go, which is based on the CE reference
+trajectory: For states lying on the constraint boundary, the cost term
+\eqref{eq:modified-tracking-cost} is added. For states inside of the constraint
+boundaries, the additional cost can be reduced to zero, or to a small fraction
+of $\SC_\tk$ to keep the cost positive definite if no other state cost is
+applied. This procedure essentially amounts to building a quadratic
+approximation of the soft constraint function around the deterministic
+trajectory.
+
+With this approximation, we can capture some of the nonlinear effects of the
+state constraints and add them to the stage cost of the dual tracking
+controller
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{equation}
+ l^\mathsc{dc}_\tk = (x_\tk - x_\tk^\text{ref})\T \SC^\text{d}_\tk (x_\tk
+ - x_\tk^\text{ref}) + (u_\tk - u_\tk^\text{ref})\T \CC^\text{d}_\tk (u_\tk -
+u_\tk^\text{ref}) + \tilde l^\text{c}_\tk(x_\tk),
+\end{equation}
+\end{fullwidth}
+where $\SC_\tk^\text{d}$ and $\CC_\tk^\text{d}$ are the cost matrices for states
+and inputs.
+
+\subsection{Maintaining the Value of Information}
+
+With the aforementioned modifications, the series-expansion based approximate
+dual control scheme presented in Chapters~\ref{ch:introduction-to-dual-control}
+and \ref{ch:nonlinear-extensions-to-dual-control} can be applied to constrained
+linear programming problems. The basic idea is to obtain an approximation of the
+cost-to-go by tracking a CE trajectory satisfying constraints and minimizing an
+economic cost with a stochastic optimal controller. The rest of the procedure
+remains the same. The additional cost induced by parameter uncertainty and the
+value of information can thereby be maintained for more general cost functions
+and polytopic state constraints.
+
+\section{Experiments}
+\label{sec:building-climate-control}
+
+The automatic control of building temperature is a promising application for
+adaptive control systems. There is high potential for energy savings, hence
+efficient use of control inputs, such as heating and cooling, is desirable.
+However, in order to make use of building controllers, a good model is
+required. With the changes introduced in
+Section~\ref{sec:linear-systems-soft-constraints}, we can apply approximate
+dual control to the building climate control problem, which allows for
+identifying relevant parts of the model during closed-loop control.
+
+\subsection{The Building Model}
+\label{sec:building-model}
+
+We
+\margincite{Gwerder.Todtli:2005:Predictive}%
+\margincite{Gondhalekar.Oldewurtel.ea:2010:Least-restrictive}%
+\margincite{Maasoumy.Razmara.ea:2014:Handling}%
+consider the simplified case of temperature control for a building equipped
+with a heat pump, a setup motivated by the increasing use of heat pumps in
+buildings. In this case, electrical energy is the energy source
+for both heating and cooling. The simplified building model is shown in
+Figure~\ref{fig:building-model}. The model is adapted from
+\citenum{Gwerder.Todtli:2005:Predictive},
+\citenum{Gondhalekar.Oldewurtel.ea:2010:Least-restrictive},
+\citenum{Maasoumy.Razmara.ea:2014:Handling}, and models the temperature in a
+single room
+inside a larger building.
+
+\begin{figure}
+  \vspace{2mm}%
+  \def\svgwidth{\columnwidth}%
+  \input{fig/building_model.pdf_tex}\vspace{-1mm}%
+  \caption[Schematic overview of the building model.][1cm]{Schematic overview of
+the building model. The room of which the temperature is to be controlled
+exchanges heat with the outside air through the window and the outer wall, and
+with the rest of the building through the inner wall. All symbols are explained
+in Table\,\ref{tab:parameters}.}
+  \label{fig:building-model}
+\end{figure}
+
+\begin{table}
+\begin{center}
+\caption{Overview of the model states, disturbances and parameters.}
+\label{tab:parameters}
+\begin{tabular}{lll}
+  symbol & meaning & unit \\
+  \midrule
+  $x_1$ & room air temperature & [\textdegree C] \\
+  $x_2$ & exterior wall temperature & [\textdegree C] \\
+  $x_3$ & interior wall temperature & [\textdegree C] \\
+  \midrule
+  $\delta_1$ & outside air temperature & [\textdegree C] \\
+  $\delta_2$ & solar radiation & [kW] \\
+  $\delta_3$ & internal heat sources & [kW] \\
+  \midrule
+  $u$   & electrical input power & [kW] \\
+  $u_h$ & electrical heating power ($u > 0$) & [kW] \\
+  $u_c$ & electrical cooling power ($u < 0$) & [kW] \\
+  $\eta_h$ & heating efficiency & - \\
+  $\eta_c$ & cooling efficiency & - \\
+  \midrule
+  $\tau_1$ & window radiation coefficient & - \\
+  $\tau_2$ & outer wall radiation coefficient & - \\
+  \midrule
+  $K_{1-4}$ & heat conductivities & [kW/\textdegree C] \\
+  $C_{1-3}$ & heat capacities & [kJ/\textdegree C]
+\end{tabular}
+\end{center}
+\end{table}
+
+\begin{margintable}[-10cm]
+\caption{Numerical values of the model parameters.}
+\label{tab:parameter-values}
+\begin{tabular}{l}
+  $C_1 = 0.256 \cdot 10^5$ kJ/\textdegree C \\
+  $C_2 = 0.970 \cdot 10^6$ kJ/\textdegree C \\
+  $C_3 = 1.695 \cdot 10^5$ kJ/\textdegree C \\
+  $\eta_h = 4 \pm 2$                        \\
+  $\eta_c = 2 \pm 2$                        \\
+  $\tau_1 = 0.25$                           \\
+  $\tau_2 = 0.75$                           \\
+  $K_1 = 5$ kW/\textdegree C \\
+  $K_2 = 23.04$ kW/\textdegree C \\
+  $K_3 = 30.5$ kW/\textdegree C \\
+  $K_4 = 122.5$ kW/\textdegree C \\
+\end{tabular}
+\end{margintable}
+
+The linear part of the system is usually relatively easy to identify and is
+therefore assumed to be known. The input efficiencies $\eta_h$ and $\eta_c$, in
+contrast, are generally not known, but highly important and only identifiable
+while the respective inputs are active. For the simulation we consider 50
+different buildings with parameters drawn from Gaussian distributions,
+$\eta_h\sim\N (4, 2)$ and $\eta_c\sim\N (2, 2)$, where we use rejection
+sampling to limit the range to $\eta_h \in [1, 10]$ and $\eta_c \in [0.35, 5]$.
+
+The continuous-time dynamics of this building model are
+\begin{fullwidth}\vspace{-\baselineskip}
+\begin{subequations}
+  \begin{align}
+    \dot x_1 &= \frac{1}{C_1} \left[ K_3(x_2 - x_1) + K_1 (\delta_1 - x_1)
+    + K_4(x_3 - x_1) \right.
+    \left. + \tau_1 \delta_2 + \eta_h u_h + \eta_c u_c + \delta_3
+    \right] \\
+    \dot x_2 &= \frac{1}{C_2} \left[ K_2 (\delta_1 - x_2)
+    + K_3(x_1 - x_2) + \tau_2 \delta_2 \right] \\
+    \dot x_3 &= \frac{1}{C_3} \left[ K_4(x_1 - x_3) \right],
+  \end{align}
+\end{subequations}
+\end{fullwidth}
+where all variables and parameters are explained in
+Table\,\ref{tab:parameters}, with their numerical value in
+Table\,\ref{tab:parameter-values}. The model is simulated continuously, but
+state and control cost are defined for the discretized system. The model is
+simulated for a whole day with a discretization interval of $\Delta t =
+600\unit{s}$.
+
+The input constraints
+\begin{equation}
+  -1000 \leq u_\tk \leq 1000
+\end{equation}
+are imposed at all times, representing the power limitations of the heat pump
+system. These constraints are chosen to retain feasibility also in the case of
+poor efficiency (low $\eta_h$ and/or $\eta_c$). The input constraints are
+enforced through the MPC for generating the nominal trajectory. If the
+approximate dual controller violates the input constraints, the constraints are
+enforced by saturation. The state constraints are time-dependent to account for
+different temperature demands during and outside working hours
+\begin{subequations}
+\begin{equation}
+  \X_\tk = \begin{cases} 21 \leq x_1 \leq 26 & \text{from 08:00 to 18:00} \\
+                 19 \leq x_1 \leq 30 & \text{otherwise}.
+           \end{cases}
+\end{equation}
+\end{subequations}
+The cost on constraint violation is also defined to be time-varying to account
+for the reduced importance of constraint satisfaction during the night
+\begin{equation}
+   \SC_\tk = \begin{cases} 10^3 & \text{from 08:00 to 18:00} \\
+                       10^{-1} & \text{otherwise}.
+           \end{cases}
+\end{equation}
+The energy cost is linear
+\begin{equation}
+  l^u_\tk(u_\tk) = \cc_\tk\T |u_\tk|,
+\end{equation}
+where the prices $\cc_\tk$ are based on a day/night pricing, which is a common
+scheme for electricity used for heating
+\begin{equation}
+   \cc_\tk = \begin{cases} 0.025  & \text{from 06:00 to 22:00} \\
+                     0.010  & \text{otherwise}.
+           \end{cases}
+\end{equation}
+The overall cost is the sum of energy and constraint cost
+\begin{equation}
+  l_\tk(x_\tk,u_\tk) = l^u_\tk(u_\tk) + l^\text{c}_\tk(x_\tk).
+\end{equation}
+
+For the purpose of comparing the different controllers, we assume that
+accurate predictions of outside air temperature, solar radiation and internal
+heat gains are known. The disturbance trajectories are shown in
+Figure~\ref{fig:disturbances}. Nonetheless, not all simulated days are
+identical: The mean temperature is drawn from a Gaussian distribution
+$\delta_0\sim\N(20,5)$ for each of the 50 building scenarios to provide a
+comparison of the controller types at days with different weather conditions.
+
+\begin{figure}
+  \setlength{\figurewidth}{0.9\columnwidth}
+  \setlength{\figureheight}{4cm}
+  \footnotesize
+  \inputTikZ{external_disturbances}\vspace{-2mm}
+  \caption[Disturbance trajectories over 24 hours.]{Disturbance trajectories
+over 24 hours. {\bfseries Top:} The outside air temperature
+(\ref*{p:outside-air}), around the mean temperature
+$\delta_0=10\text{\textdegree C}$ (\ref*{p:outside-air-mean}).
+{\bfseries Middle:} The solar radiation. {\bfseries Bottom:} The internal heat
+gains.}
+  \label{fig:disturbances}
+\end{figure}
+
+\subsection{Controller Types}
+
+In order to analyze the performance of the approximate dual controller, we
+compare it to four other controllers. First of all, an optimal controller having
+access to the true parameter values is employed to serve as a lower bound (LB)
+to the cost for a specific instance of the problem.
+
+The second approach is the CE controller \cite{Bar-Shalom.Tse:1974:Dual}, simply
+using the expectation of the uncertain parameters.
+
+One of the more elaborate options when dealing with parameter uncertainties in
+MPC is the scenario approach (SA) \cite{Calafiore.Campi:2006:Scenario}: Instead
+of relying on the mean value only, samples from the parameter distribution are
+used for marginalization. We use a simplified version of the scenario approach,
+where the MPC is solved for all sampled dynamics individually, averaging the
+optimal control afterwards. In order to obtain fast and reliable sampling, we
+use the Latin hypercube sampling technique
+\cite{McKay.Beckman.ea:1979:Comparison} for
+this process.
+
+Since dual control is about the benefits of exploration, we also compare to a
+controller with modified cost function that favors exploration, also known as
+exploration bonus (EB)
+\margincite{Wittenmark:1975:Active}%
+\margincite{Dayan.Sejnowski:1996:Exploration}%
+\margincite{Macready.Wolpert:1998:Bandit}%
+\margincite{Audibert.Munos.ea:2009:Exploration}%
+\citenum{Wittenmark:1975:Active,Dayan.Sejnowski:1996:Exploration,
+Macready.Wolpert:1998:Bandit, Audibert.Munos.ea:2009:Exploration}.
+This approach is often referred to as dual control, but it lacks the selective
+identification feature. Exploration bonus based controllers can not
+automatically decide which features of the dynamics are important. As a result,
+they aim at identifying as much as possible, defined by the trade-off between
+the arbitrary uncertainty cost and the actual cost. We
+use an exploration bonus with an additional cost term of the form
+\begin{equation}
+  \diag(\Sigma^{\t\t})\T \SC^\mathsc{eb} \diag(\Sigma^{\t\t}).
+\end{equation}
+The matrix $\SC^\mathsc{eb}$ has to be chosen to encourage exploration, but also
+not to dominate the certainty equivalent cost structure entirely. In the
+experiments, we reached this behavior by selecting
+\begin{equation}
+ \SC^\mathsc{eb}  = \begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix}.
+\end{equation}
+
+The last controller in the comparison is the approximate dual controller (AD)
+as presented in this chapter.
+
+All controllers, except for the LB, use the element-wise zero-order hold
+discretization as described in Section~\ref{sec:building-problem} and all use a
+horizon length of one day ($\HL=144$).
+
+\subsection{Experimental Results}
+
+In order to provide a fair comparison of the different controllers under
+uncertainty, we sampled 50 different buildings with 50 different weather
+conditions, as described in Section~\ref{sec:building-model}. For each of these
+setups, the performance of all five controllers was evaluated. Since the
+optimal performance even under full knowledge varies tremendously based on the
+temperature and the heat pump efficiencies, the performances of the tested
+controllers are also evaluated relative to the lower bound performance. The
+aggregated results are shown in Table\,\ref{tab:bdc-results}. Since the
+variability due to the different scenarios is high, it is difficult to draw
+strong general conclusions. Nonetheless it is noticeable that the approximate
+dual controller shows the best average performance. Relative to the lower bound,
+the AD shows more than 50\% improvement compared to the standard CE approach and
+about 28\% compared to EB.
+
+Figure~\ref{fig:visual-overview-controllers} shows the performance of the
+different controller types as color-coded entries of the result matrix,
+visualizing the performance differences. In most cases AD outperforms EB, but
+in some cases it is the other way round. This is due to the fact that, based on
+the weather, for certain days only the heating is necessary, for certain days
+only the cooling, and for some days both.
+
+\begin{figure*}
+  \setlength{\figurewidth}{0.94\textwidth}
+  \setlength{\figureheight}{1.6cm}
+  \footnotesize
+  \inputTikZ{controller_comparison}\vspace{-2mm}
+  \caption[Visual overview of the control performance.]{Visual overview of the
+control performance for 50 different problem instances. The overall cost after
+one day is color-coded on a log scale. From top to bottom: Lower bound (LB),
+certainty equivalent (CE), scenario approach (SA), exploration bonus (EB),
+approximate dual (AD).}
+  \label{fig:visual-overview-controllers}
+\end{figure*}
+
+\begin{table}
+  \vspace{2mm}
+  \begin{center}
+  \label{tab:bdc-results}
+    \begin{tabular}{l|rrr|rrr|}
+    & \multicolumn{3}{c|}{absolute} & \multicolumn{3}{c|}{relative to LB} \\
+    & mean & std & \mathsc{sem} & mean & std & \mathsc{sem} \\
+    \midrule
+    LB & 34.45 & 27.24 & 3.85 & 0.00 & 0.00 & 0.00 \\
+    CE & 49.44 & 50.24 & 7.11 & 14.99 & 26.65 & 3.77 \\
+    SA & 45.15 & 40.76 & 5.76 & 10.70 & 18.09 & 2.56 \\
+    EB & 44.60 & 37.70 & 5.33 & 10.15 & 14.27 & 2.02 \\
+    AD & 41.75 & 33.45 & 4.73 & 7.30 & 10.61 & 1.50 \\
+  \end{tabular}
+  \end{center}
+  \caption[Overall performance comparison.][22mm]{Overall performance
+comparison. Aggregated costs over 50 different problem instances. Controllers
+as in Figure~\ref{fig:visual-overview-controllers}. Provided are the sample
+mean, sample standard deviation and the standard error of the mean
+(\textsc{sem}).}
+\end{table}
+
+Note that for days where both cooling and heating are used, the EB and AD
+controllers perform almost equally well, since both input parameters have to be
+identified. Remaining differences are due to the used approximation and tuning.
+Figure~\ref{fig:cold-and-warm-day} illustrates such a case (problem instance
+23), where the AD has no benefit over the EB. Figure~\ref{fig:cold-day}, on
+the other hand, shows a day  where only heating, but no cooling, is needed
+(problem instance 20). This is an example of a situation where it is profitable
+to use AD instead of EB. Any controller with exploration bonus tries to identify
+\emph{all} uncertain parameters, whereas the approximate dual controller only
+identifies the parameters that are important, or \emph{valuable}, in this
+scenario.
+
+\begin{figure*}
+\pgfplotsset{yticklabel style={text width=1.8em,align=right}}
+  \setlength{\figurewidth}{0.95\columnwidth}
+  \setlength{\figureheight}{5cm}
+  \footnotesize
+  \inputTikZ{heating_and_cooling_day}
+  \caption[Problem instance where both heating and cooling are used.]{Problem
+instance where both heating and cooling are used (problem instance 23).
+{\bfseries Top:} Room temperature (\ref*{p:building-room}), outer wall
+temperature (\ref*{p:building-outer-wall}) and inner wall temperature
+(\ref*{p:building-inner-wall}). The constraints are imposed on the room
+temperature (\ref*{p:building-constraints}). {\bfseries Bottom:} Control inputs
+for heating (\ref*{p:building-heating}) and cooling (\ref*{p:building-cooling}).
+{\bfseries Left:} Exploration bonus controller. {\bfseries Right:} Dual
+controller. }
+  \label{fig:cold-and-warm-day}
+\end{figure*}
+
+\begin{figure*}
+\pgfplotsset{yticklabel style={text width=1.8em,align=right}}
+\vspace{30mm}
+  \setlength{\figurewidth}{0.95\columnwidth}
+  \setlength{\figureheight}{5cm}
+  \footnotesize
+  \inputTikZ{heating_only_day}
+  \caption[Problem instance where only heating is necessary.]{Problem instance
+where only heating is necessary (problem instance 20). Colors and
+controllers as in Figure~\ref{fig:cold-and-warm-day}. The pre-heating around 5
+am is due to the lower energy price at this time.} \label{fig:cold-day}
+\end{figure*}
+
+\section{Conclusion}
+
+The value of information is a feature of dual control often neglected. Using an
+approximation to the optimal dual control formulation in terms of a series
+expansion of the cost function, we constructed a controller that maintains an
+approximation of the value of information in systems with linear cost
+structure. This controller favors the identification of relevant features and
+ignores features that are not necessary for future control.
+
+We developed a method based on the construction of a tracking reference
+found by solving the optimal control problem for the current mean estimate of
+the parameters. This reference is subsequently tracked by a quadratic low-level
+dual controller based on dynamic programming.
+
+Since constraint satisfaction can not be guaranteed by the low-level controller
+under Gaussian assumptions, we used soft constraints with high cost to penalize
+constraint violation. Further, we proposed a formulation that allows for
+marginalization of the augmented cost in closed form.
+
+The proposed method combining reference tracking and soft constraint
+marginalization allows for the approximate evaluation of the value of
+information. This can be used to increase the average control performance under
+high initial parameter uncertainty.
+
+In simulation experiments with a simple building model, we illustrate that this
+method improves performance over simpler alternative approximations to dual
+control that are based on changes of the cost function.

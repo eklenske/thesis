@@ -1,0 +1,857 @@
+\chapter{Gaussian Process Regression}
+\label{ch:gaussian-processes}
+
+\lettrine{R}{egression} is the task of learning a functional relationship
+between input and output variables from potentially noisy observations.
+Regression problems are an important part of learning methods in control theory
+and applications. For example, regression can be used to infer state transition
+functions of dynamical systems from noisy measurements of the states. These
+learned dynamics can then be used to synthesize controllers or to predict
+the state evolution.
+
+Classically in system modeling and automatic control, parametric models are
+used to describe the equations of motion derived from first
+principles\footnote{For example, in mechanical systems the first principles are
+Newton's equations of motion.}. The parameters in such models are the physical
+properties that can be measured: mass, length, etc. If possible, this is the
+ideal case, but often it is difficult to describe all relevant effects a
+priori. Since many systems are complex, it is challenging to come up with
+perfect parametric models for them and, thus, more flexible models that can
+infer unforeseen functional relationships can offer substantial benefits.
+
+\begin{marginfigure}
+\setlength\figurewidth{\columnwidth}%
+\setlength\figureheight{0.618\figurewidth}%
+  \inputTikZ{gauss_1d}%
+  \caption[One-dimensional Gaussian distribution.]{One-dimensional Gaussian
+distribution (\ref*{p:g1d}). The mean (\ref*{p:g1d-m}) and the bands of one
+(\ref*{p:g1d-1sd}) and two standard deviations (\ref*{p:g1d-2sd}) are
+highlighted.\vspace{\baselineskip}}
+  \label{fig:1d-gauss}
+\end{marginfigure}
+
+When using flexible models, the problem of overfitting quickly arises, where
+even non-effects like noise are fitted, leading to poor generalization. One way
+to mitigate overfitting is to use a probabilistic prior on the function space.
+Adding a prior effectively regularizes the regression problem and brings about a
+global solution. A Gaussian prior on the function space is called a
+\emph{Gaussian process} (GP).
+
+\subsubsection{A Gaussian Distribution over Functions}
+
+The well-known one-dimensional Gaussian (or \emph{normal}) distribution is shown
+in Figure~\ref{fig:1d-gauss}. The Gaussian distribution is defined by two
+parameters: the mean, which defines the average value, and the variance, which
+defines the breadth of the distribution.
+
+\begin{marginfigure}
+\setlength\figurewidth{\columnwidth}%
+\setlength\figureheight{\figurewidth}%
+  \inputTikZ{gauss_2d}%
+  \caption[Two-dimensional Gaussian distribution.]{Two-dimensional Gaussian
+distribution. The mean (~\ref*{p:g2d-m}~) and the area of one (\ref*{p:g2d-1sd})
+and two standard deviations (\ref*{p:g2d-2sd}) are shown.}
+  \label{fig:2d-gauss}
+\end{marginfigure}
+
+The Gaussian distribution easily extends to the multivariate case, where we now
+have a mean \emph{vector} and a \emph{co}variance \emph{matrix} defining the
+distribution. The role of the mean remains the same, but since we now have
+multiple variables, we not only have to define the breadth of the distribution,
+but also the coupling between variables, the correlation. Breadth and shape of
+the distribution are defined by the covariance matrix, where the off-diagonal
+terms define the coupling between variables. Figure~\ref{fig:2d-gauss} shows a
+two-dimensional Gaussian distribution.
+
+Analogously to the extension to multiple dimensions, we can extend this notion
+to entire functions. Instead of a mean vector we now have a mean
+\emph{function} and instead of a covariance matrix we have a covariance
+\emph{function} that defines the correlation between function values at
+different inputs. The extension of the Gaussian distribution to functions is
+called Gaussian process, an example is shown in Figure~\ref{fig:gauss-proc}.
+
+\begin{marginfigure}
+\setlength\figurewidth{\columnwidth}%
+\setlength\figureheight{0.618\figurewidth}%
+  \inputTikZ{gauss_proc}%
+  \caption[Gaussian process prior.]{Gaussian process prior. Shown are the
+mean (\ref*{plt:gp-pri-mean}), two standard deviations (\ref*{plt:gp-pri-var})
+and three samples (\ref*{plt:gp-pri-sample}).}
+  \label{fig:gauss-proc}
+\end{marginfigure}
+
+\section{Model and Notation}
+
+A regression task is to infer a function $f(x)$ from measurements $y$ at
+locations $x$. Usually the measurements are corrupted by Gaussian noise:
+\begin{equation}
+  y = f(x) + \gamma, \qqqq \gamma \sim \N(0,\sigma^2),
+\end{equation}
+where $\N$ is a Gaussian (normal) distribution.
+
+For notational simplicity, this chapter only covers the scalar case of Gaussian
+processes. In the case of a vector-valued function $f$, one GP is trained for
+every dimension. For our purposes, a Gaussian process $\GP(f;m,\k)$ is an
+infinite-dimensional probability distribution over the space of real-valued
+\emph{functions} $f:\Re\to\Re$, such that every finite, $N$-dimensional linear
+restriction to function \emph{values} $f(\mathbf{x})\in \Re^N$ (measurements)
+at locations $\mathbf{x}\in\Re^N$ (measurement locations) is an $N$-variate
+Gaussian distribution $\N(f(\mathbf{x}); m(\mathbf{x}),
+\k(\mathbf{x},\mathbf{x}))$. It is parametrized by a mean function
+$m(\mathbf{x}):\Re^N\to\Re^N$, and a covariance function
+$\k(\mathbf{x},\mathbf{x}):\Re^N \times \Re^N\to \Re^{N\times N}$. The mean has
+a relatively straightforward role; it simply shifts predictions. The covariance
+function's responsibility is more intricate. It can be interpreted as a
+similarity measure over function values, expressed in terms of the inputs, and
+controls the shape of the Gaussian process belief in the space of functions. It
+has to be chosen such that, for any $\mathbf{x}\in\Re^N$, the matrix
+$\k(\mathbf{x},\mathbf{x}) \in \Re^{N\times N}$, also known as the
+\emph{kernel} matrix, is positive semidefinite.
+
+As common in the Gaussian process literature, without loss of generality, we
+assume the mean function $m$ to be zero to simplify notation. Note that this
+does not imply that only zero-mean Gaussian processes should be considered for
+practical applications. Rather, the choice of mean function should be part of
+the modeling considerations.
+
+\section{Inference in Gaussian Processes}
+
+The main inference machinery in the GP regression framework is Bayes' rule
+\begin{equation*}
+  \text{posterior} = \frac{\text{likelihood} \times
+\text{prior}}{\text{evidence}},
+\qq
+  p(\M|\D) = \frac{p(\D|\M) \times p(\M)}{p(\D)}
+\end{equation*}
+where $p$ is a probability density function, $\D$ stands for the data and $\M$
+for the model. When the prior is a Gaussian process and the likelihood is
+Gaussian, the posterior is again a Gaussian process. The mean and covariance
+function of the posterior can be calculated in closed form with linear algebra
+calculations.
+
+Even if the Gaussian process $\GP(f;m,k)$ is an infinite-dimensional object with
+mean function $m$ and covariance function $k$, we can reason about any finite
+amount of data points $\mathbf{x}=[x_1, \dots, x_N]$ and prediction point $x$
+by evaluating the mean and covariance function at those locations only. This
+amounts to the application of the marginalization rule of Gaussian algebra
+\cite[\ts2.3]{Bishop:2006:Pattern} and results in a multivariate Gaussian
+distribution. Stacking the predictive value $y$ and the vector of noise-free
+function evaluations $\mathbf{y}=[y_1; \dots; y_N]$ into one vector results in
+the following joint distribution
+\begin{equation}
+  \label{eq:joint-gaussian}
+  \begin{bmatrix}y\\\mathbf{y}\end{bmatrix}
+  \sim \N\left(\begin{bmatrix}0\\0\end{bmatrix},
+  \begin{bmatrix}\k_{xx} & \k_{x\mathbf{x}} \\
+    \k_{\mathbf{x}x} & \k_{\mathbf{x}\mathbf{x}} \end{bmatrix} \right),
+\end{equation}
+where we have introduced the shorthand notation $\k_{\cdot\cdot} =
+\k(\cdot,\cdot)$.
+
+\begin{marginfigure}[28mm]
+\setlength\figurewidth{\columnwidth}%
+\setlength\figureheight{0.618\figurewidth}%
+  \inputTikZ{gauss_proc_post}%
+  \caption[Gaussian process posterior after two noise-free observations.]
+  {Gaussian process posterior after two noise-free observations.
+Shown are the mean (\ref*{plt:gp-post-mean}), two standard deviations
+(\ref*{plt:gp-post-var}) and three samples (\ref*{plt:gp-post-sample}).}
+  \label{fig:gauss-proc-post}
+\end{marginfigure}
+
+Since we have measured $\mathbf{y}$, but not $y$, we apply the conditioning
+rule \citenum[\ts2.3]{Bishop:2006:Pattern} of Gaussian algebra to obtain
+\begin{equation}
+  \label{eq:gaussian-conditioning}
+  y \sim \N\left( \k_{x\mathbf{x}} K\inv \mathbf{y},
+  \k_{xx} - \k_{x\mathbf{x}} K\inv  \k_{\mathbf{x}x}
+  \right),
+\end{equation}
+where $K=\k(\mathbf{x},\mathbf{x})$. The matrix $K$ is called the Gram matrix
+(or \emph{kernel} matrix). We can write the predictive mean and predictive
+covariance explicitly as
+\begin{subequations}
+\label{eq:gp-post}
+\begin{align}
+m^{|\mathbf{x},\mathbf{y}}(x) &= \k_{x\mathbf{x}} K\inv \mathbf{y}\\
+k^{|\mathbf{x}}(x,x') &= \k_{xx'} - \k_{x\mathbf{x}} K\inv
+\k_{\mathbf{x}x'},
+\end{align}
+\end{subequations}
+which can easily be implemented.\footnote[][-10mm]{Note that, while
+the formulation \eqref{eq:gp-post} is mathematically concise, the Cholesky
+decomposition \citenum{Rasmussen.Williams:2006:Gaussian} of the Gram
+matrix is usually used to carry out the calculations for increased speed and
+numerical stability.}\margincite{Rasmussen.Williams:2006:Gaussian}
+Figure~\ref{fig:gauss-proc-post} shows an example of a GP posterior with
+noise-free observations. After conditioning on the measurements, the function
+space is restricted to functions that pass through them.
+
+So far, we only considered noise-free observations. Adding independent and
+identically distributed Gaussian observation noise to the GP framework is done
+simply by adding measurement noise to the Gram matrix $K$:
+\begin{equation}
+  \label{eq:noisy-gram-matrix}
+  K_\text{noisy} = \k(\mathbf{x},\mathbf{x}) + \sigma^2 I
+\end{equation}
+The inference under noisy measurements results in a similar posterior, with the
+difference that the posterior mean is closer to the prior, and the pointwise
+posterior distribution is not as narrow as in the noise-free case.
+Figure~\ref{fig:gauss-proc-post-n} shows an example of GP inference under noise.
+
+\begin{marginfigure}[-45mm]
+\setlength\figurewidth{\columnwidth}%
+\setlength\figureheight{0.618\figurewidth}%
+  \inputTikZ{gauss_proc_post_noise}%
+  \caption[Gaussian process posterior after two noisy observations.]
+  {Gaussian process posterior after two noisy observations.
+Shown are the mean (\ref*{plt:gp-post-n-mean}), two standard deviations
+(\ref*{plt:gp-post-n-var}) and three samples (\ref*{plt:gp-post-n-sample}).}
+  \label{fig:gauss-proc-post-n}
+\end{marginfigure}
+
+\section{Sampling from Gaussian Processes}
+
+Gaussian processes are generative models. This means that it is possible to
+draw samples from the prior or posterior distribution, similar to drawing
+from a Gaussian distribution. This is of two-fold importance:
+
+First, methods that use the GP model might need samples for numerical
+marginalization, when analytic integration is intractable. Instead of
+calculating an expectation directly, a sum over samples can serve as
+approximation
+\begin{equation}
+  \Exp_{f}\left[c(f)\right]= \int c(f) \GP(f;m,\k) df \approx \frac{1}{S}
+\sum_{i=1}^S c(s_i),
+\end{equation}
+where $c(f)$ is a functional operator and $s_i$ are the samples from the GP.
+
+Secondly, samples are a great tool for analyzing the function space defined by
+the GP. It is important to note that the mean of a GP looks fundamentally
+different from samples from the same process, see Figures~\ref{fig:gauss-proc}
+and \ref{fig:gauss-proc-post}. This is due to the smoothing property of the
+mean \cite[\ts~2.6]{Rasmussen.Williams:2006:Gaussian}. For choosing the
+covariance function and its parameters\footnote[][3mm]{See Sections
+\ref{sec:covariance-functions} and \ref{sec:parameter-fitting}.} it is, thus,
+helpful to compare samples of the selected GP with real data to see if they
+look similar. This can help in the analysis of how the chosen model fits the
+data.
+
+For finite-dimensional datasets, where the samples $s$ are vectors of function
+\emph{evaluations} at locations $\mathbf{x}$, the sampling process is relatively
+straightforward, since it is equivalent to sampling from a multivariate Gaussian
+distribution with the covariance of the GP:
+\begin{equation}
+  s = L \rho,
+\end{equation}
+where $L$ is a matrix satisfying $LL\T = \k(\mathbf{x},\mathbf{x})$ and $\rho$
+is a random Gaussian vector of appropriate size. $\k$ can be any suitable
+positive semidefinite covariance function, especially also the posterior
+covariance of a GP.
+
+\section{Choosing a Covariance Function}
+\label{sec:covariance-functions}
+
+The covariance function defines how samples and predictions of the Gaussian
+process look like, by shaping the underlying probability distribution in the
+function space. So far, we considered the covariance function as given. But
+where does it come from, and how should it be chosen?
+
+There is an alternate way of deriving Gaussian processes, usually called the
+``weight-space view'' \cite[\ts~2.1]{Rasmussen.Williams:2006:Gaussian}. We will
+not reproduce the entire derivation here, but instead point out certain
+aspects.
+
+Consider general linear regression
+\begin{equation}
+  f(x) = w\T\Phi(x),
+\end{equation}
+where $w$ are weights and $\Phi(x)$ is a vector of potentially nonlinear feature
+functions. The shape of the functions that can be represented by this
+model is defined by the shape of the chosen feature functions.
+
+The notion of general linear regression can be expressed in the GP framework
+and can be extended to the nonparametric case with infinitely many
+features.\footnote{This is usually done by reformulating, and application of the
+famous ``kernel trick''
+\citenum[\ts2.2]{Scholkopf.Smola:2002:Learning}.}\margincite{
+Scholkopf.Smola:2002:Learning} We then obtain a covariance function (or
+\emph{kernel}) that is defined by the feature functions that we have chosen in
+the first place. This means that, by the choice of covariance function, we can
+choose the shape of the functions that can be represented by the Gaussian
+process.
+
+Theoretically, every positive semidefinite kernel can be used as covariance
+function for a Gaussian process. However, for this thesis, we only consider
+stationary covariance functions, for which the covariance depends on the
+distance $r=|x-x'|$ of the inputs and not on the location itself.
+
+\subsection{Output Correlation}
+
+The covariance function of a Gaussian process defines a mapping from the
+distance $r$ in input space to correlation in output space. For radial basis
+functions, for example, this means that the function values of two points that
+are close in input space are correlated to a higher degree than the function
+values of points that are far away in input space.
+Figure~\ref{fig:gauss-output-corr} visualizes this.
+
+\begin{figure}
+\setlength\figurewidth{\columnwidth}%
+\setlength\figureheight{0.618\figurewidth}%
+  \resizebox{\columnwidth}{!}{\inputTikZ{gauss_output_corr}}%
+  \caption[Correlation of different points in output space.]{Correlation
+of different points in output space for a radial basis function.
+{\bfseries Top:} GP with mean
+(\ref*{plt:gp-pri-mean}), two standard deviations
+(\ref*{plt:gp-pri-var}) and three samples (\ref*{plt:gp-pri-sample}). {\bfseries
+Middle:} Correlation function (\ref*{p:corr-cov}) for the
+reference location (\ref*{p:corr-ref}) and evaluation locations
+(\ref*{p:corr-eval}). {\bfseries Bottom:} Two-dimensional Gaussian
+distributions between the reference location and the different evaluation
+locations, shown as areas for 1 and 2 standard deviations
+(\ref*{p:corr-1sd}/\ref*{p:corr-2sd}).}
+  \label{fig:gauss-output-corr}
+\end{figure}
+
+This correlation between function values is responsible for the overall shape
+of samples of the GP. If points that are relatively close in input space have a
+high correlation, this means that there is not much variability in the sampled
+functions, and the inputs have to move further away to allow for significant
+changes in the function values. If the correlation between nearby points is
+low, this allows for high variability within shorter distance: The functions
+are more flexible.
+
+\subsection{Examples of Covariance Functions}
+
+There are many different covariance functions to choose from. In this section
+we only provide those which are relevant for this thesis.
+
+\subsubsection{Square Exponential Covariance Function}
+
+\begin{marginfigure}
+\setlength\figurewidth{\columnwidth}%
+\setlength\figureheight{0.618\figurewidth}%
+  \inputTikZ{kernel_se}%
+  \caption{Square exponential covariance function.}
+  \label{fig:kern-se}
+\end{marginfigure}
+
+One important covariance function is the square
+exponential\footnote[][3mm]{Also known as ``squared exponential'',
+``exponentiated quadratic'', ``radial basis function'' (RBF) or ``Gaussian''
+covariance function.}
+\begin{equation}
+  \label{eq:cov-se}
+  \k_\mathsc{se}(x, x'; \theta, \ell) = \theta^2
+  \exp\left(-\frac{|x-x'|^2}{2\ell^2}\right),
+\end{equation}
+where $\theta^2$ is the signal variance and $\ell$ the length scale parameter.
+Using this covariance function is equivalent to infinite-dimensional Gaussian
+feature regression. It is differentiable and integrable and therefore compatible
+to many use-cases. The shape of the square exponential covariance function is
+shown in Figure~\ref{fig:kern-se}.
+
+\subsubsection{Periodic Covariance Function}
+\label{sec:periodic-covariance}
+
+\begin{marginfigure}
+\setlength\figurewidth{\columnwidth}%
+\setlength\figureheight{0.618\figurewidth}%
+  \inputTikZ{kernel_per}%
+  \caption{Periodic covariance function.}
+  \label{fig:kern-per}
+\end{marginfigure}
+
+Much more specific is the periodic covariance function
+\cite{MacKay:1998:Introduction}
+\begin{equation}
+  \label{eq:cov-per}
+  \k_\mathsc{p}(x,x';\theta,\ell,\lambda) = \theta^2
+  \exp\left(-\frac{2\sin^2\left(\frac{\pi}{\lambda}
+  (x-x')\right)}{\ell^2}\right),
+\end{equation}
+where $\theta^2$ and $\ell$ are similar parameters as above, and $\lambda$ is
+the period length. This periodic covariance is essentially a square exponential
+covariance where the inputs are warped through a sine. A GP with this covariance
+function can only represent periodic functions with a specified period length
+$\lambda$. This might seem restrictive, but it can be valuable because it is
+much more data efficient than other covariances and has better extrapolation
+performance because stronger assumptions on the underlying function space are
+made. The shape of the periodic covariance function is shown in
+Figure~\ref{fig:kern-per}.
+
+\subsection{Combined Covariance Functions}
+
+In practice, the functions we want to learn are often mixtures of different
+signals and it is hard to find a covariance function that suits all of
+them simultaneously. Instead of trying to fit all components with a single
+covariance function, which usually leads to poor data efficiency and/or
+predictive performance, the Gaussian process framework is flexible enough to
+allow for combinations of covariance functions.
+
+In practice, combined covariance functions are obtained by element-wise
+addition or multiplication of the kernel matrices:
+\begin{equation}
+  \k_\mathsc{c}(\mathbf{x},\mathbf{x}) = k_1(\mathbf{x},\mathbf{x}) +
+k_2(\mathbf{x},\mathbf{x})
+\end{equation}
+or
+\begin{equation}
+  \k_\mathsc{c}(\mathbf{x},\mathbf{x}) = k_1(\mathbf{x},\mathbf{x}) \odot
+k_2(\mathbf{x},\mathbf{x}),
+\end{equation}
+where $\k_\mathsc{c}$ stands for the kernel combination and $\k_1$,
+$\k_2$ are the individual kernels. The meaning of the additive kernel is
+relatively simple: It adds two different functions on top of each
+other.~\cite[\ts4.2]{Rasmussen.Williams:2006:Gaussian}\iss One example for a GP
+with additive covariance structure is shown in
+Figure~\ref{fig:kernel-combination}.
+
+ \begin{figure}
+  \setlength\figurewidth{0.507\columnwidth}%
+  \setlength\figureheight{0.618\figurewidth}%
+  \inputTikZ{gauss_proc_comb_pri}\inputTikZ{gauss_proc_comb_post}%
+  \caption[Gaussian process prior and posterior for an additive
+covariance.]{Gaussian process prior (left) and posterior (right) for an
+additive covariance. The covariance function is combined from a square
+exponential and a periodic covariance. Shown are the mean
+(\ref*{plt:gp-comb-pri-mean}), two standard deviations
+(\ref*{plt:gp-comb-pri-var}) and one sample (\ref*{plt:gp-comb-pri-sample})
+each.}
+  \label{fig:kernel-combination}
+\end{figure}
+
+The effect of multiplying kernels is more intricate. While it can be shown that
+element-wise multiplications still retain the positive-definiteness of the
+resulting matrices \cite{Schur:1911:Bemerkungen}, it is harder to grasp what
+this means for the function. In a way, the multiplication acts similarly to a
+logical \texttt{and}, so that there is a high correlation between points that
+have a high correlation under \emph{both} covariance functions.
+
+\subsubsection{Output Projections}
+\label{sec:output-projections}
+
+When inference is done with a covariance combination, it is also possible to
+split the prediction to the different parts for additional interpretation
+possibilities or for the subsequent use in other algorithms. This is done with
+the Gaussian algebra of Equations~\eqref{eq:joint-gaussian} and
+\eqref{eq:gaussian-conditioning} by conditioning the prediction on the kernels
+that we are interested in.
+
+\pagebreak[4]
+
+If, for example, the prediction should be done only for kernel 1, the
+resulting predictive posterior amounts to \cite{Duvenaud:2014:Automatic}
+\begin{subequations}
+\label{eq:output-projection}
+\begin{align}
+m^{|\mathbf{x},\mathbf{y}}_1(x) &= \k_1(x,\mathbf{x}) K_{\mathsc{c}}\inv
+\mathbf{y}\\
+k^{|\mathbf{x}}_1(x,x') &= \k_1(x,x') -\k_1(x,\mathbf{x})
+K_{\mathsc{c}}\inv
+  \k_1(\mathbf{x},x').
+\end{align}
+\end{subequations}
+where $K_\mathsc{c}$ is the Gram matrix for a combined kernel and $\k_1$ is
+the kernel function for only one of the kernels. The effect of this conditioning
+of the posterior is shown in Figure~\ref{fig:different-output-projections},
+using the same kernel combination as in Figure~\ref{fig:kernel-combination}.
+
+ \begin{figure}
+  \setlength\figurewidth{0.507\columnwidth}%
+  \setlength\figureheight{0.618\figurewidth}%
+  \inputTikZ{gauss_proc_comb_proj1}\inputTikZ{gauss_proc_comb_proj2}%
+  \caption[Comparing different output projections from a combined
+covariance.]{Comparing different output projections from a combined
+covariance. The Gaussian conditioning shows the periodic component (left) and
+the square exponential component (right) respectively. Shown are the mean
+(\ref*{plt:gp-comb-proj1-mean}/\ref*{plt:gp-comb-proj2-mean}), two
+standard deviations (\ref*{plt:gp-comb-proj1-var}/\ref*{plt:gp-comb-proj2-var})
+and one sample
+(\ref*{plt:gp-comb-proj1-sample}/\ref*{plt:gp-comb-proj2-sample}) each.}
+  \label{fig:different-output-projections}
+\end{figure}
+
+\vspace{-\baselineskip}
+\section{Setting the Kernel Parameters}
+\label{sec:parameter-fitting}
+
+Most covariance functions have parameters, like the signal variance $\theta^2$
+or the length scale $\ell$ in Equation~\eqref{eq:cov-se}. These parameters are
+usually called \emph{hyper}para\-meters. The reason for this name is the idea
+of a Gaussian process being an infinite-dimensional linear regression model: In
+linear regression, the weights for the different features are called
+parameters, and the Gaussian process has infinitely many of these
+parameters.\footnote{These methods are also referred to as \emph{non}parametric
+in the literature, to stress the fact that there is no \emph{finite} amount of
+features to select.} To distinguish the parameters of the covariance function
+from the linear regression parameters, they are called \emph{hyperparameters}.
+
+\subsection{The Role of the Hyperparameters}
+
+Even though covariance functions like the square exponential are
+\emph{universal kernels} that can theoretically learn any function
+\cite{Micchelli.Xu.ea:2006:Universal}, it is important to set the
+hyperparameters correctly. Otherwise the learning can be inefficient and might
+need much more data than a GP with a suitable set of
+hyperparameters.~\cite{van-der-Vaart.van-Zanten:2011:Information}
+
+\subsubsection{Output Variance}
+
+The scale factor ($\theta^2$ in Equation~\eqref{eq:cov-se}) of the covariance
+function defines the output variance of the GP, \ie the range over which
+functions typically vary in value. The effect of this parameter is visualized
+in Figure~\ref{fig:different-signal-variances}.
+
+\pagebreak[4]
+
+\begin{figure}
+  \setlength\figurewidth{0.507\columnwidth}%
+  \setlength\figureheight{0.618\figurewidth}%
+  \inputTikZ{gauss_proc_high}\inputTikZ{gauss_proc_low}%
+  \caption[Gaussian process with high/low signal variance.]{Gaussian process
+with high signal variance (left) compared to one with low signal variance
+(right), using a square exponential kernel. Shown are the mean
+(\ref*{plt:gp-pri-mean}), two standard deviations
+(\ref*{plt:gp-pri-var}) and three samples (\ref*{plt:gp-pri-sample}) each. The
+higher signal variance allows for larger function values.}
+  \label{fig:different-signal-variances}
+\end{figure}
+
+\subsubsection{Length Scale}
+
+Most covariance functions have a length scale parameter ($\ell$ in
+Equation~\eqref{eq:cov-se}). Often, changing the length scale parameter is
+equivalent to a scaling of the input distance. This parameter defines how much
+the function values can vary relative to the input distance. The effect of this
+parameter is visualized in Figure~\ref{fig:different-length-scales}.
+
+\begin{figure}
+  \setlength\figurewidth{0.507\columnwidth}%
+  \setlength\figureheight{0.618\figurewidth}%
+  \inputTikZ{gauss_proc_long}\inputTikZ{gauss_proc_short}%
+  \caption[Gaussian process with long/short length scale.]{Gaussian process
+with long length scale (left) compared to one with short length scale (right),
+using a square exponential kernel.
+Shown are the mean (\ref*{plt:gp-pri-mean}), two standard deviations
+(\ref*{plt:gp-pri-var}) and three samples (\ref*{plt:gp-pri-sample}) each. The
+shorter length scale allows for more variation within the same distance in input
+space.}
+  \label{fig:different-length-scales}
+\end{figure}
+
+\subsubsection{Period Length}
+
+The periodic covariance has a period length parameter ($\lambda$ in
+Equation~\eqref{eq:cov-per}). This parameter defines the distance in input
+space after which the function repeats itself. The effect of this parameter is
+visualized in Figure~\ref{fig:different-period-length}.
+
+\begin{figure}
+  \setlength\figurewidth{0.507\columnwidth}%
+  \setlength\figureheight{0.618\figurewidth}%
+  \inputTikZ{gauss_proc_per_long}\inputTikZ{gauss_proc_per_short}%
+  \caption[Gaussian process with long/short period length.]{Gaussian process
+with long period length (left) compared to one with short period length
+(right), using a periodic kernel. Shown are the mean
+(\ref*{plt:gp-pri-mean}), two standard deviations
+(\ref*{plt:gp-pri-var}) and one sample (\ref*{plt:gp-pri-sample}) each. The
+sampled functions are perfectly periodic with the chosen period length.}
+  \label{fig:different-period-length}
+\end{figure}
+
+\subsection{The Hyperparameter Likelihood}
+
+For many applications it can be enough to choose the hyperparameters from
+physical reasoning, but this is not always the case. Especially for automatic
+parameter tuning it is important to assess how good the parameters fit the data.
+
+Assume that all kernel parameters are subsumed in the parameter vector
+$\boldsymbol{\eta}$. Inferring good values for $\boldsymbol{\eta}$ is important
+for good modeling performance. The fundamental framework for GP inference is
+provided by Bayes' theorem. The likelihood for observations $\mathbf{y}$ at
+locations $\mathbf{x}$, conditioned on the parameters $\boldsymbol{\eta}$, can
+be found by marginalization over the unknown function $f$, which is feasible
+because both $p(\mathbf{y}|f)$ and $p(f|\boldsymbol{\eta})$ are Gaussian
+distributions:
+\begin{align}
+  p(\mathbf{y}|\mathbf{x},\boldsymbol{\eta}) &= \int
+  p(\mathbf{y}|f)p(f|\boldsymbol{\eta}) df\\
+  \notag
+  &= \int \N(\mathbf{y};f(\mathbf{x}),\sigma^2 I)\GP(f;0,\k(\boldsymbol{\eta}))
+  df\\
+  \notag &= \N(\mathbf{y};0,K(\boldsymbol{\eta})).
+\end{align}
+
+These calculations are easier to perform in log domain,
+where the logarithm of the marginal likelihood is given by
+\begin{equation}
+\label{eq:log-likelihood}
+  \log p(\mathbf{y} | \mathbf{x},\boldsymbol{\eta}) = - \frac{1}{2} \mathbf{y}\T
+  K(\boldsymbol{\eta})\inv
+  \mathbf{y} - \frac{1}{2} \log \left|K(\boldsymbol{\eta})\right| -\frac{N}{2}
+  \log 2\pi.
+\end{equation}
+With this likelihood, it is easy to compare the model fit for different sets of
+hyperparameters.
+
+\subsection{Hyperparameter Optimization}
+\label{sec:typeII-ML}
+
+One way of setting the hyperparameters is to maximize the marginal likelihood
+\eqref{eq:log-likelihood},
+\begin{equation}
+  \boldsymbol{\eta}^* = \underset{\boldsymbol{\eta}}{\argmax}
+p(\mathbf{y}|\mathbf{x},\boldsymbol{\eta}).
+\end{equation}
+This is usually done with a gradient-based optimizer;
+often quasi-Newton methods, such as the BFGS algorithm
+\margincite{Nocedal.Wright:2006:Numerical}%
+\citenum[\ts6.1]{Nocedal.Wright:2006:Numerical}, are used. Since the
+optimization leads to the maximum likelihood (ML) solution for the
+hyperparameters, it is usually called \emph{type-II maximum
+likelihood}\footnote{The maximum likelihood approach is also known as
+\emph{evidence maximization} in the literature.}, to distinguish it from the GP
+inference itself.~\cite[\ts
+5.4.1]{Rasmussen.Williams:2006:Gaussian}\iss In a way, hyperparameter
+optimization can be seen as a second layer of inference on top of the
+Gaussian process.
+
+Using the ML estimate is one of the most widely studied and best understood
+strategies in statistics.~\cite[\ts9.3 -- \ts9.6]{Wasserman:2010:All}\iss It is
+not without weaknesses, \eg the optimization is prone to get stuck in local
+minima. Some of these weaknesses are often resolved if enough data is available,
+or by the use of customized optimization algorithms. Other approaches, for
+example, integrating the hyperparameters over ML estimates or cross validation,
+have been examined in the past and found to perform worse than the above type-II
+maximum likelihood approach in practice, see, \eg \cite{MacKay:1999:Comparison}.
+
+\subsection{Priors on the Hyperparameters}
+\label{sec:typeII-MAP}
+
+In order to make the method more robust, it can be beneficial to introduce
+priors on the parameters. For the strictly positive parameters
+$\boldsymbol{\eta}$, gamma priors
+\cite[\ts8.3]{Barber:2011:Bayesian} are a classic choice:
+\begin{equation}
+  p(\boldsymbol{\eta}| \boldsymbol{\kappa},\boldsymbol{\tau}) = \prod_i
+\frac{\boldsymbol{\eta}_i
+^{\kappa_i-1}\exp(-\frac{\boldsymbol{\eta}_i}{\tau_i})}{\Gamma(\kappa_i)\tau_i
+^{\kappa_i}},
+\end{equation}
+where $\kappa_i$ and $\tau_i$ are tuning-parameters\footnote{Sometimes also
+referred to as hyper-hyperparameters.}, and $\Gamma$ is the gamma function.
+
+Again, the maximization is easier to perform in log domain, in which the effect
+of the prior is additive, leading to the following optimization problem:
+\begin{multline}
+\label{eq:maximum-posterior}
+  \boldsymbol{\eta}^* = \underset{\boldsymbol{\eta}}{\argmax}
+p(\boldsymbol{\eta}|\mathbf{y},\mathbf{x}) =
+\underset{\boldsymbol{\eta}}{\argmax}
+p(\mathbf{y}|\mathbf{x},\boldsymbol{\eta})p(\boldsymbol{\eta}) \\
+  = \underset{\boldsymbol{\eta}}{\argmax} (\log
+p(\mathbf{y}|\mathbf{x},\boldsymbol{\eta}) + \log p(\boldsymbol{\eta}) ).
+\end{multline}
+In \eqref{eq:maximum-posterior}, the prior effectively turns into a
+regularizer, simplifying optimization and avoiding degeneracy. The additional
+computational cost is negligible compared to the matrix inversion needed for
+(\ref{eq:log-likelihood}).
+
+\section{Numerical Effort and Approximations}
+
+Gaussian processes are generally considered to be a relatively expensive
+method. This is due to the matrix inversion and determinant calculation in
+Equation~\eqref{eq:gaussian-conditioning} which both have
+(na\"ive\footnote{Sometimes, lower complexity numbers are reported for using the
+Strassen algorithm \citenum{Strassen:1969:Gaussian} and further improvements,
+but they are rarely implemented in
+practice.}\margincite{Strassen:1969:Gaussian}) asymptotic complexity of
+$\O(N^3)$ in the number of samples $N$. For large amounts of training data, this
+can be prohibitive.
+
+In the light of using GPs for applications in automatic control, there is
+another point to consider: It is rarely, if ever, acceptable to have growing
+inference cost over time. Control algorithms should run reliably fast and
+therefore have almost constant runtime for both the inference and the control
+part.
+
+There are many different ways of dealing with the numerical complexity of
+Gaussian processes, see Chapter 8 of the textbook by
+\textcite{Rasmussen.Williams:2006:Gaussian} for an overview. In the following,
+we review two methods that will be used in subsequent chapters of this
+work.
+
+\subsection{Subset-of-Data Approximation}
+\label{sec:subset-of-data}
+
+One of the simplest and most efficient approximation methods is the
+Subset-of-Data (SD\footnote{In the literature also abbreviated as ``SoD''.})
+method. The idea is to reduce the number $N$ of available data points by
+considering only a smaller subset of $M$ data points with $M \ll N$. Since $M$
+can be chosen in advance, the runtime of the algorithm is known and remains
+constant.
+
+Changing the set of data points does not change the inference algorithm at all;
+therefore, this method can be implemented quickly and efficiently. Of course,
+the considered data points need to be chosen at runtime. Ideally the selection
+should be done according to how informative a data point is, but this
+optimization can be demanding, too. Hence, usually approximative methods are
+used. For example, depending on the expected distribution of data points in the
+dataset, the used data can be randomly sampled or selected by optimization of
+some criterion, \eg a differential entropy score
+\cite{Lawrence.ea:2003:Fast}.
+
+\subsection{Sparse Spectrum Approximation}
+\label{sec:sparse-spectrum-approximation}
+
+By Mercer's theorem \cite[\ts3.a]{Konig:1986:Eigenvalue}, the kernel can be
+decomposed into a converging series over eigenfunctions $\phi(x)$, as
+\begin{equation}
+  \label{eq:mercer}
+  \k(x,x') = \sum_{l=1} ^\infty \lambda_l \phi _l(x) \phi_l ^*
+(x'),
+\end{equation}
+where $\phi_l$ are functions that are orthonormal relative to some measure $\mu$
+(the precise choice of which is irrelevant for the time being), with the
+property
+\begin{equation}
+  \int \k(x,x') \phi_l(x') d\mu(x') = \lambda_l \phi_l(x).
+\end{equation}
+
+In this sense, Gaussian process regression can be seen as
+``infinite-dimensional'' Bayesian linear regression, where the infinite inner
+product \eqref{eq:mercer} is tractable because of the kernel trick
+\cite[\ts2.2]{Scholkopf.Smola:2002:Learning}.
+
+Using the kernel formulation comes at the cost of a growing Gram matrix and,
+thus, rising inference cost, and is rarely acceptable for practical control
+applications. Therefore, it is often necessary to project the GP belief onto a
+finite representation, replacing the infinite sum in Equation~(\ref{eq:mercer})
+with a finite inner product of a low-dimensional explicit feature map $\Phi(x)$
+\begin{equation}
+  \k(x,x') \approx \Phi(x)\T\Lambda\Phi(x'),
+\end{equation}
+where $\Lambda$ is a diagonal eigenvalue matrix.
+This bounds the computational cost of the inference \eqref{eq:gp-post},
+because the more efficient formulae of general linear regression can be used
+\begin{subequations}
+\label{eq:featue-post}
+\begin{align}
+  m^{|\mathbf{x},\mathbf{y}}(x) &= \frac{1}{\sigma^2}\Phi(x)\T
+A\inv\Phi(\mathbf{x})
+\mathbf{y}\\
+  k^{|\mathbf{x}}(x,x') &= \Phi(x)\T A\inv\Phi(x),
+\end{align}
+\end{subequations}
+where $A=\sigma^{-2}\Phi(\mathbf{x})\Phi(\mathbf{x})\T +\Lambda^{-1}$.
+
+We define the feature map $\Phi$ that projects the inputs onto a pre-defined
+finite basis of functions, drawn from the eigenspectrum of the kernel with
+respect to the Lebesgue measure. Similar approaches have been recently proposed
+in the literature \cite{Lazaro.ea:2010:Sparse}, \cite{Rahimi.Recht:2008:Random}.
+The following provides a short, self-contained introduction:
+
+By Bochner's theorem \cite[\ts2.5]{Stein:1999:Interpolation}, the covariance
+function $k(r)$ (with $r=|x-x'|$) of a stationary mean-square continuous random
+process can be represented as the Fourier transform of a positive finite measure
+and, if that measure has a density $S(s)$, as the Fourier dual of $S$:
+\begin{equation}
+  \k(r) = \int\limits_{-\infty}^\infty S(s)e^{2\pi \imath s r} ds,
+\end{equation}
+where $\imath$ is the imaginary unit.
+This means that the eigenfunctions of the kernel are trigonometric functions,
+and stationary covariance functions, like the commonly used square exponential
+kernel \eqref{eq:cov-se}, can be approximated by cosine basis functions as
+\begin{equation}
+  \k(x,x') \approx \tilde \k(x,x') =
+\frac{\theta^2}{F}\sum_{i=1}^{F} \cos(\omega_{i} |x-x'|),
+\end{equation}
+where $F$ is the number of features, and the frequencies $\omega_i$ of the
+feature functions can be sampled from the power spectrum of the
+process.\footnote{For example, the Latin hypercube sampling technique
+\citenum{McKay.Beckman.ea:1979:Comparison} can be
+used.}\margincite{McKay.Beckman.ea:1979:Comparison} An example of such kernel
+approximation is shown in Figure~\ref{fig:kernel-approximation}. With increasing
+number of features, the approximation can be chosen as close to the true
+covariance function as needed, while keeping the number of features in a range
+that is still feasible within the time constraints of the control algorithm.
+
+\begin{figure*}
+  \setlength\figureheight{0.5\textwidth}%
+  \setlength\figurewidth{\textwidth}%
+  \footnotesize%
+  \resizebox{\columnwidth}{!}{\inputTikZ{kernel_comparison}}%
+  \caption[Comparison of a finite kernel approximation to the full
+kernel.]{Comparison of a finite kernel approximation to the full kernel. Prior
+(left), posterior (middle) and kernel function (right) of both the full kernel
+function (top row) and the approximate kernel (bottom row). Shown are the mean
+(\ref*{p:full-mean}/\ref*{p:approx-mean}), two standard deviations
+(\ref*{p:full-std}/\ref*{p:approx-std}) and three samples each
+(\ref*{p:full-sample}/\ref*{p:approx-sample})}
+  \label{fig:kernel-approximation}
+\end{figure*}
+
+\section{Extensions}
+
+The Gaussian process framework is powerful and has many useful features
+and extensions. Two further concepts are important for this thesis and will
+thus be presented here.
+
+\subsection{Heteroscedastic Noise}
+\label{sec:heteroscedastic-noise}
+
+Usually noise is assumed uniform for all measurements (homoscedastic), but this
+may not be satisfied in practice. Not all measurement processes have constant
+noise level, therefore it can be useful to consider heteroscedastic noise
+instead, allowing for variable noise variance.
+
+The additive noise matrix in Equation~\eqref{eq:noisy-gram-matrix} can also be
+given in the form of a diagonal matrix
+\begin{equation}
+  K_\text{noisy} = k(\mathbf{x},\mathbf{x}) +
+  \begin{pmatrix}\sigma^2_1 &&\\&\ddots&\\&&\sigma^2_N\end{pmatrix},
+\end{equation}
+where $\sigma^2_i$ for $i=\{1\dots N\}$ is the noise variance for the $i$-th
+measurement. This way a sensor or measurement method with variable noise level
+can be modeled accurately within the Gaussian process framework.
+
+\subsection{Explicit Feature Functions}
+\label{sec:explicit-feature-functions}
+
+Since Gaussian processes are related to general linear regression, it is
+possible to combine both methods. This is useful if certain parts of a
+regression problem can be modeled as parametric features and other parts can
+not. Even though a GP can potentially learn everything, it is much more
+efficient to model as much as possible in the form of parametric features and
+train a more general GP for the remainder only.
+
+An additive combination of general linear regression and Gaussian process can be
+modeled as
+\begin{equation}
+  g(x) = \beta\T \psi(x) + f(x),
+\end{equation}
+where $\beta\sim\N(b,B)$ is a parameter vector, $\psi$ is a set of parametric
+feature functions and $f(x)\sim \GP(0,k_f)$.
+
+A numerically stable way of formulating the predictive mean and covariance is
+\cite[\ts2.7]{Rasmussen.Williams:2006:Gaussian}
+\begin{subequations}
+\label{eq:joint-model}
+\begin{align}
+   m_g^{|\mathbf{x},\mathbf{y}}(x) &= m_f^{|\mathbf{x},\mathbf{y}}(x) + \bar
+\beta  \T R(x)\\
+   k_g^{|\mathbf{x}}(x,x') &= k_f^{|\mathbf{x}}(x,x') + R(x)\T\left(B\inv +
+  \Psi K\inv \Psi\T\right)\inv R(x'),
+\end{align}
+\end{subequations}
+where the feature matrix $\Psi$ collects the feature vectors $\psi(\mathbf{x})$
+for all
+data points, $\bar \beta = (B\inv + \Psi K\inv \Psi\T)\inv (\Psi K\inv
+\mathbf{y} + B\inv b)$, and $R(x) = \psi(x) - \Psi K\inv
+\k_f(\mathbf{x},x)$. These calculations represent the inference in the joint
+model,
+combining general linear regression with a Gaussian process. If the prior on
+the parametric part of the model should be uninformative, one can obtain the
+limit case by letting $B\inv \to 0$, which is possible in the formulation of
+Equation~\eqref{eq:joint-model}.

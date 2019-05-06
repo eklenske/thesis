@@ -1,0 +1,204 @@
+% MATH PACKAGES %%%%%%%%%%%%
+
+\usepackage{amstext,amssymb}
+\numberwithin{equation}{chapter}
+
+\usepackage{ntheorem}   % for theorem-like environments
+\usepackage{mdframed}   % for framing
+
+% \usepackage{bm}
+
+%% definitions
+\theoremstyle{break}
+\theoremheaderfont{\normalfont\bfseries}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{remark}{Remark}[chapter]
+
+\theorembodyfont{\normalfont}
+\newmdtheoremenv[%
+linewidth=0,
+leftmargin=60,%
+rightmargin=40,
+backgroundcolor=lightgray,%
+ntheorem]{example}{Example}[chapter]
+
+
+%% math stuff
+\renewcommand{\Re}{\mathbb{R}}
+\newcommand{\Nat}{\mathbb{N}}
+\renewcommand{\O}{\mathcal{O}}
+\newcommand{\X}{\mathbb{X}}
+\renewcommand{\U}{\mathbb{U}}
+\newcommand{\N}{\mathcal{N}}
+\newcommand{\Trans}{^{\intercal}}
+\newcommand{\inv}{^{-1}}
+\newcommand{\+}{\texttt{+}}
+\newcommand{\minus}{\texttt{-}}
+\newcommand{\intl}{\int\limits}
+\newcommand{\suml}{\sum\limits}
+\renewcommand{\t}{\tau}
+\newcommand{\GP}{\mathcal{GP}}
+\DeclareMathOperator*{\argmin}{arg\,min\,}
+\DeclareMathOperator*{\argmax}{arg\,max\,}
+\newcommand{\cov}{\operatorname{cov}}
+\newcommand{\diag}{\operatorname{diag}}
+
+\newcommand{\Exp}{\mathbb{E}}
+\newcommand{\Var}{\mathbb{V}}
+\DeclareMathOperator*{\tr}{tr}
+
+% nominal system
+\newcommand{\An}{\bar A}
+\newcommand{\Bn}{\bar B}
+\newcommand{\gn}{\bar g}
+\newcommand{\Kn}{\bar K}
+\newcommand{\mun}{\bar \mu}
+\newcommand{\pn}{\bar p}
+\newcommand{\tn}{\bar\theta}
+\newcommand{\un}{\bar u}
+\newcommand{\xn}{\bar x}
+\newcommand{\zn}{\bar z}
+\newcommand{\Jn}{\bar J}
+
+% perturbed system
+\newcommand{\Ap}{\tilde A}
+\newcommand{\Bp}{\tilde B}
+\newcommand{\gp}{\tilde g}
+\newcommand{\Kp}{\tilde K}
+\newcommand{\pp}{\tilde p}
+\newcommand{\Up}{\tilde U}
+\newcommand{\Wp}{\tilde W}
+
+% perturbed system
+\newcommand{\dx}{\Delta x}
+\newcommand{\dz}{\Delta z}
+\newcommand{\dhx}{\Delta \hat x}
+\newcommand{\dhz}{\Delta \hat z}
+\newcommand{\du}{\Delta u}
+\newcommand{\dJ}{\Delta J}
+\newcommand{\dt}{\Delta \t}
+
+% weird things
+\newcommand{\gtn}{\tilde {\bar g}}
+
+% perturbed nominal system
+\newcommand{\dJn}{\Delta \bar J}
+
+% toy example
+\newcommand{\sbk}{\sigma^2_{\tk}}
+\newcommand{\sbkp}{\sigma^2_{\tk+1}}
+\newcommand{\mbk}{\hat b_{\tk}}
+\newcommand{\mbkp}{\hat b_{\tk+1}}
+\newcommand{\sv}{\sigma^2_{v}}
+\newcommand{\sx}{\sigma^2_{v}}
+\newcommand{\uk}{u_\tk}
+\newcommand{\ukp}{u_{\tk+1}}
+
+% math shortenings
+\renewcommand{\L}{\Lambda}
+\newcommand{\cL}{\mathcal{L}}
+
+\renewcommand{\t}{\theta}
+\renewcommand{\tt}{\theta\theta}
+
+\newcommand{\CE}{\mathsc{ce}}
+\newcommand{\OF}{\mathsc{of}}
+\newcommand{\EB}{\mathsc{eb}}
+
+\newcommand{\SE}{\mathsc{se}}
+
+\newcommand{\cP}{\mathcal{P}}
+\newcommand{\cQ}{\mathcal{D}}
+\newcommand{\cR}{\mathcal{W}}
+\newcommand{\cK}{\mathcal{K}}
+\newcommand{\cF}{\mathcal{A}}
+\newcommand{\cG}{\mathcal{G}}
+\newcommand{\cC}{\mathcal{C}}
+
+\newcommand{\s}{\sigma}
+\newcommand{\w}{\omega}
+
+% MACROS %%%%%%%%%%%%%%%%%%%%%%
+
+\renewcommand{\d}[1]{d #1}
+
+% MATH DEFINITIONS %%%%%%%%%%%%
+
+\newcommand{\g}{\,|\,}
+\newcommand{\de}{\partial}
+% \newcommand{\Exp}{\mathbb{E}}
+% \newcommand{\cov}{\operatorname{cov}}
+% \newcommand{\diag}{\operatorname{diag}}
+% \newcommand{\N}{\mathcal{N}}
+\newcommand{\T}{^{\intercal}}
+% \newcommand{\argmin}{\operatorname*{arg\:min}}
+% \newcommand{\argmax}{\operatorname*{arg\:max}}
+\renewcommand{\det}{\operatorname{det}}
+\newcommand{\var}{\operatorname{var}}
+
+\newcommand{\q}{\quad}
+\newcommand{\qq}{\qquad}
+\newcommand{\qqq}{\quad\qquad}
+\newcommand{\qqqq}{\qquad\qquad}
+
+% shorthands
+\newcommand{\ve}{\varepsilon}
+\renewcommand{\t}{\theta}
+
+% UNCATEGORIZED STUFF %%%%%%%%%
+
+\renewcommand{\vec}{\boldsymbol}
+\newcommand{\mat}{\boldsymbol}
+\newcommand{\vect}[1]{\overrightarrow{#1}}
+\newcommand{\vest}[1]{\overrightharpoon{#1}}
+\newcommand{\fun}[1]{\mathsf{#1}}
+\newcommand{\logm}{\operatorname{Log}}
+\newcommand{\expm}{\operatorname{Exp}}
+\renewcommand{\O}{\mathcal{O}}
+\renewcommand{\G}{\mathcal{G}}
+% \newcommand{\GP}{\mathcal{GP}}
+\newcommand{\Id}{\vec{I}}
+\newcommand{\zero}{\vec{0}}
+% \newcommand{\tr}{\operatorname{tr}}
+\newcommand{\rk}{\operatorname{rk}}
+\newcommand{\blkdiag}{\operatorname{blkdiag}}
+\newcommand{\II}{\mathbb{I}}
+
+% \newcommand{\bm}{\boldsymbol{m}}
+\newcommand{\bmu}{\boldsymbol{\mu}}
+\newcommand{\bSigma}{\boldsymbol{\Sigma}}
+\newcommand{\bPhi}{\boldsymbol{\Phi}}
+\newcommand{\bphi}{\boldsymbol{\phi}}
+\newcommand{\balpha}{\boldsymbol{\alpha}}
+\newcommand{\bbeta}{\boldsymbol{\beta}}
+\newcommand{\bX}{\mathbf{X}}
+
+\newcommand{\f}{\vec{f}}
+\newcommand{\y}{\vec{y}}
+\newcommand{\x}{\vec{x}}
+
+\newcommand{\fS}{\mathsf{S}}
+\newcommand{\fW}{\mathsf{W}}
+\newcommand{\fB}{\mathsf{B}}
+\newcommand{\fK}{\mathsf{K}}
+\newcommand{\fH}{\mathsf{H}}
+\newcommand{\fk}{\mathsf{k}}
+\newcommand{\fh}{\mathsf{h}}
+\newcommand{\fL}{\mathsf{L}}
+
+\newcommand{\sA}{\boldsymbol{\mathsf{A}}}
+\newcommand{\sB}{\boldsymbol{\mathsf{B}}}
+\newcommand{\sC}{\boldsymbol{\mathsf{C}}}
+
+\newcommand{\ce}{\coloneqq}
+\newcommand{\ec}{\eqcolon}
+
+\usepackage{nicefrac}
+
+\newcommand{\braket}[2]{\left\langle #1 , #2 \right\rangle}
+\newcommand{\brakets}[3]{\left\langle #1 \, \middle| \, #2 \, \middle|\, #3
+\right\rangle}
+
+
+\renewcommand{\M}{\mathcal{M}}
+\newcommand{\D}{\mathcal{D}}

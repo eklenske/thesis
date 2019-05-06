@@ -1,0 +1,35 @@
+%%% NOTATION %%%
+
+% This file is to define notation stuff that you want to make uniform
+% throughout the thsis. Define a command for each to prevent notation clashes.
+
+\newcommand{\tk}{t} % time-step, usually k but clashes with kernel
+\renewcommand{\k}{k} % kernel function, might clash with time step
+
+\renewcommand{\i}{i} % the running index for states in the horizon
+\newcommand{\pred}{_\star} % GP prediction point
+
+\newcommand{\dist}{\xi} % state disturbance
+\newcommand{\noise}{\gamma} % measurement noise
+
+\newcommand{\DC}{D} % disturbance covariance
+\newcommand{\NC}{W} % noise covariance
+
+\newcommand{\ND}{N} % number of datapoints (GP)
+
+
+\newcommand{\SC}{Q} % state cost
+\newcommand{\CC}{R} % control cost
+\renewcommand{\sc}{q} % state cost
+\newcommand{\cc}{r} % control cost
+\newcommand{\HL}{T} % horizon length
+
+\newcommand{\ns}{{n_x}} % number of states
+\renewcommand{\ni}{{n_u}} % number of inputs
+\newcommand{\no}{{n_y}} % number of outputs
+\newcommand{\np}{{n_p}} % number of parameters
+
+\newcommand{\VM}{V} % value matrix
+\newcommand{\vv}{v} % value vector
+
+\newcommand{\xref}{x^\text{ref}} % reference
