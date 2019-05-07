@@ -21,9 +21,9 @@ thesis, it was worth uploading.
 
 The thesis heavily relies on TikZ and pgfplots. It will take forever to
 compile, at least with current CPUs. Recent versions of texlive can cache the
-TikZ images for fast compiliation. However, it is possible that this only works
-if the pdf is compiled with `pdflatex --shell-escape`. Any way, the first run
-will take very long.
+TikZ images for fast compiliation. However, this only works if the pdf is
+compiled with `pdflatex -shell-escape thesis.tex`. Anyway, the first run will
+take very long.
 
 While I hopefully achieved a good style for of the compiled document, the
 source code would not comply to any software engineering guidelines. There are

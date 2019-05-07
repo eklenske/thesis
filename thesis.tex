@@ -127,7 +127,7 @@ sep=2pt]{ \sffamily\footnotesize ADD FIGURE}}} \footnotesize #1}\xspace}
 \newcommand{\todo}[1]{\marginpar{\raisebox{-2pt}{\tikz{\node[fill=ora,inner
 sep=2pt]{ \sffamily\footnotesize TODO}}} \footnotesize #1}}
 
-\usepackage[a-2b,pdf15]{pdfx}
+%\usepackage[a-2b,pdf15]{pdfx}
 % \newcommand{\U}{}\newcommand{\G}{}\newcommand{\M}{}
 
 \input{glyphtounicode.tex}
@@ -159,8 +159,7 @@ sep=2pt]{ \sffamily\footnotesize TODO}}} \footnotesize #1}}
 \pagenumbering{roman}
 \pagestyle{plain}
 
-% these only work when `pdflatex` is called with `--shell-escape`
-\CatchFileDef\gitdirty{"| ./checkdirty"}{}
+% these only work when `pdflatex` is called with `-shell-escape`
 \CatchFileDef\gitrevision{"| git rev-parse --short HEAD"}{}
 \CatchFileDef\gitbranch{"| git rev-parse --abbrev-ref HEAD"}{}
 \CatchFileDef\gittag{"| git tag -l --points-at HEAD"}{}
