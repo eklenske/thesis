@@ -1,0 +1,37 @@
+% created by Edgar Klenske
+\begin{tikzpicture}[auto, node distance=0.4cm,>=open triangle 45]
+
+  \tikzstyle{area} = [fill=lightgray, rectangle,
+    minimum height=2.5cm, minimum width=3.5cm, align=center]
+
+  \node[area] (GS) {Gain Scheduling\\~\\Model-Reference\\Adaptive Control};
+  \node[area, above=0.6cm of GS] (STR) {Self-Tuning Regulator\\~\\Model
+    Identification\\Adaptive Control};
+  \node[fill=lightgray, rectangle, minimum height=2.5cm, minimum width=3cm,
+    right=of STR] (DC) {Dual Control};
+%   \node[area, left=of GS, opacity=0.6] (SID1) {System Identification};
+%   \node[area, left=of STR, opacity=0.6] (SID2) {System Identification};
+%
+%   \node[coordinate] at ($(SID1.south west)!0.5!(SID2.north west)
+% +(-0.25cm,0)$) (origin) {};
+  \node[coordinate] at ($(STR.south west)!0.5!(GS.north west)+(-0.25cm,0)$)
+(time1) {};
+  \node[coordinate] at ($(DC.south west)!0.5!(GS.north east)$) (time2) {};
+  \node[coordinate] at ($(DC.south east) +(0.25cm,-0.3cm)$) (time3) {};
+
+  \draw[->,thick] (time1) -- node[pos=0.9, right] {model-based} +(0,3.5cm);
+  \draw[->,thick] (time1) -- node[pos=0.9] {model-free} +(0,-3.5cm);
+
+%   \draw[thick] (origin) -- node[coordinate](offline){} (time1);
+%   \node[fill=white] at (offline) {offline};
+
+  \draw[thick] (time1) -- node[coordinate](online){} (time2);
+  \node[fill=white] at (online) {online};
+
+  \draw[->,thick] (time2) -- node[coordinate](predictive){}
+    node[pos=0.9,below]{time} (time3);
+  \node[fill=white] at (predictive) {predictive};
+
+  \node[left=4mm of STR, white] {.};
+
+  \end{tikzpicture}

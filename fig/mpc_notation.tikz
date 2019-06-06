@@ -1,0 +1,36 @@
+% created by Edgar Klenske
+\tikzstyle{state} = [rectangle, fill=lgra,
+    minimum height=1cm, minimum width=1cm, align=center]
+
+\usetikzlibrary{fit}
+
+\begin{tikzpicture}[auto, node distance=0.25cm,>=open triangle 45]
+
+  \coordinate (origin);
+
+  \node[state, above=0.5cm of origin] (xtk) {$x(t_k)$};
+  \node[left=of xtk] (past) {$\cdots$};
+  \node[state, left=of past] (xt0) {$x(t_0)$};
+
+  \node[state, below=1cm of xtk] (x0) {$x_0$};
+  \node[state, right=of x0] (x1) {$x_1$};
+  \node[right=of x1] (x2) {$\cdots$};
+  \node[state, right=of x2] (xi) {$x_i$};
+  \node[right=of xi] (x3) {$\cdots$};
+  \node[state, right=of x3] (xT) {$x_T$};
+
+  \draw[->] (origin) -- node[pos=0.85, above] {future} +(7cm,0);
+  \draw (origin) +(0, 0.4cm) -- +(0, -0.4cm);
+  \draw[->] (origin) -- node[near end, below] {past} +(-3cm,0);
+
+  \draw [decoration={brace, raise=3mm}, decorate]
+    (xt0.north west) -- (xtk.north east) node [pos=0.5,anchor=south,yshift=4mm]
+    (reality) {physical states};
+
+  \draw [decoration={brace, raise=3mm}, decorate]
+    (xT.south east) -- (x0.south west) node
+    [below, pos=0.5,anchor=north,yshift=-4mm]
+    (plan) {planned states};
+
+  \node[fit=(xtk) (x0), draw, dashed, rounded corners] {};
+\end{tikzpicture}

@@ -1,0 +1,60 @@
+% created by Edgar Klenske
+
+
+\begin{tikzpicture}[auto, node distance=1cm,>=open triangle 45]
+\tikzstyle{block} = [fill=lightgray, rectangle,
+    minimum height=1cm, minimum width=1cm, align=center]
+\tikzstyle{sum} = [fill=lightgray, circle]
+
+  \coordinate (scope_out);
+  \coordinate [below=of scope_out] (scope_in);
+  \node[sum, right=2cm of scope_out, fill=white] (sum_w) {};
+  \node[sum] at (sum_w) (sum_ae) {};
+  \node[block, right=of sum_w] (gp) {$\GP$};
+  \node[block, below=of sum_w] (accumulator) {$\sum$};
+  \node[block, right=of gp] (pc) {P};
+  \coordinate [above=of pc] (c1);
+  \node[sum, below=of gp, fill=white] (gp_w) {};
+  \node[sum, below=of gp_w] (sum_gp) {};
+  \coordinate (c2) at (accumulator |- sum_gp);
+
+  \draw[->] (scope_out) -- node[coordinate](e){} node[near start]{$e_k$}
+    (sum_ae);
+  \draw[->] (e) |- (c1) -- node[pos=.7] {$-$} (pc);
+  \coordinate (c3) at (e |- sum_gp);
+  \coordinate (c4) at (e |- accumulator);
+  \draw[->] (sum_ae) -- node {$a_k$} (gp);
+  \draw[->] (gp) -- node[pos=.5] {$\Delta \tilde a_{k+1}$} node[pos=.85] {$-$}
+    (sum_gp);
+  \draw[->] (pc) |- (sum_gp);
+  \draw[->] (c2) -- (accumulator);
+  \draw[->] (sum_gp) -| node[near start] {$u_k$} (c4) -- (c4 -| scope_out);
+  \draw[->] (accumulator) -- (sum_ae);
+
+  \node[block, rotate=90, left=of scope_in, minimum width=2.5cm,
+    xshift=14mm, yshift=-5mm]
+    (scope) {Telescope};
+
+%
+%     \node[block] (plant) {Plant};
+%     \coordinate[right=2cm of plant] (out);
+%     \coordinate[above=of plant, xshift=8mm] (dist);
+%     \coordinate[left=of plant] (corner);
+%
+%     % Once the nodes are placed, connecting them is easy.
+%     \draw[->] (plant) -- node[coordinate](x){} node{$x$} (out);
+%
+%     \node[block, below=0.5cm of plant] (controller) {Controller};
+%     \coordinate (sum_c) at (x |- controller);
+%     \coordinate[right=of sum_c] (ref);
+%     \node at (ref) {};
+%
+%     % Once the nodes are placed, connecting them is easy.
+%     \draw[->] (dist) -- node[coordinate](d){} node{$d$}
+%         ([xshift=8mm]plant.north);
+%     \draw[->] (corner) -- node[coordinate](u){} node{$u$} (plant);
+%     \draw[->] (x) -- node[near end]{$-$} (sum);
+%     \draw (controller) -| (corner);
+%     \draw[->] (ref) -- node[above, near start]{$r$} (sum);
+%     \draw[->] (sum) -- (controller);
+\end{tikzpicture}

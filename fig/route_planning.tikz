@@ -1,0 +1,24 @@
+% created by Edgar Klenske
+\tikzstyle{city} = [circle, fill=lgra,
+    minimum height=0.75cm, minimum width=0.75cm, align=center]
+
+\begin{tikzpicture}[auto, node distance=1cm,>=open triangle 45]
+  \node[city] (Z) {Z};
+  \node[city, above=3cm of Z, xshift=-1cm] (H) {H};
+  \node[city, draw, above=2cm of H, xshift=3cm] (S) {S};
+  \node[city, above=1.5cm of H, xshift=1.5cm] (B) {B};
+  \node[city, above=0cm of H, xshift=2cm] (T) {T};
+
+  \draw[->,mgra] (Z) to node[coordinate](quest){} (H);
+  \draw[->,mgra] (Z) to [bend right=20] (H);
+  \draw[->,mgra] (Z) to [bend right=40] (H);
+  \draw[->,mgra] (Z) to [bend left=20] (H);
+  \draw[->,mgra] (Z) to [bend left=40] (H);
+
+  \draw[->] (H) to node[below]{$35$} (T);
+  \draw[->] (H) to node{$43$} (B);
+  \draw[->] (T) to node[right]{$45$} (S);
+  \draw[->] (B) to node{$21$} (S);
+
+  \node at (quest) {\Huge ?};
+\end{tikzpicture}

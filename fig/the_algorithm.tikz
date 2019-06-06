@@ -1,0 +1,46 @@
+% created by Edgar Klenske
+
+
+% The block diagram code is probably more verbose than necessary
+\begin{tikzpicture}[auto, node distance=2cm,>=open triangle 45]
+    \tikzstyle{block} = [fill=lgra, rectangle,
+        minimum height=1.2cm, minimum width=4cm, align=center]
+    \tikzstyle{decision} = [fill=lgra, diamond, aspect=2,
+        minimum height=0.75cm, minimum width=4cm, align=center]
+
+    % We start by placing the blocks
+    \node[block] (init) {Initialize};
+    \node [block, right of= init, node distance=5cm] (compute_CE)
+      {Compute \\ {\bfseries CE control}};
+    \node [block, below of= compute_CE]
+      (extrapolate) { \ding{172} {\bfseries predict} state \\and
+      covariance\\ for given $u_\tk$};
+    \node [block, below of= extrapolate, node distance=2cm] (nominal)
+      {\ding{173} Compute \\
+      {\bfseries CE trajectory}\\ and its covariances};
+    \node [block, below of= nominal] (dual_cost) {\ding{174} Evaluate\\
+      \bfseries{cost-to-go}};
+    \node [decision, below of= dual_cost, minimum height=0.2cm, inner sep=0,
+     ] (stop) {search over?};
+    \node [block, left of= stop, node distance=5cm] (next_uk) {\ding{172}
+      Compute next value \\${u_\tk}$ for the {\bfseries search}};
+    \node [block, right of= stop, node distance=5cm] (control) {Apply the \\
+      {\bfseries control}};
+    \node [block, right of= dual_cost, node distance=5cm] (simulate) {Simulate
+      or {\bfseries run} \\the system};
+    \node [block, right of= nominal, node distance=5cm] (measurement) {Make new
+      \\ {\bfseries measurement}};
+
+    % Once the nodes are placed, connecting them is easy.
+  \draw [->] (init) -- (compute_CE);
+  \draw [->] (compute_CE) -- (extrapolate);
+  \draw [->] (extrapolate) -- (nominal);
+  \draw [->] (nominal) -- (dual_cost);
+  \draw [->] (dual_cost) -- (stop);
+  \draw [->] (stop) -- node[above]{yes} (control);
+  \draw [->] (stop) -- node[above]{no} (next_uk);
+  \draw [->] (next_uk) |- (extrapolate);
+  \draw [->] (control) --(simulate);
+  \draw [->] (simulate) --(measurement);
+  \draw [->] (measurement) |- (compute_CE);
+\end{tikzpicture}

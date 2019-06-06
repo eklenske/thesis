@@ -1,0 +1,42 @@
+% created by Edgar Klenske
+\tikzstyle{do} = [rectangle, fill=gra, text=white,
+    minimum height=1cm, minimum width=1cm, align=center]
+
+\tikzstyle{plan} = [rectangle, fill=lgra,
+    minimum height=1cm, minimum width=6cm, align=center]
+
+\tikzstyle{time} = [rectangle,
+    minimum height=1cm, align=center]
+
+\tikzstyle{input} = [rectangle,
+    minimum width=1cm, align=center]
+
+\usetikzlibrary{fit}
+
+\begin{tikzpicture}[auto, node distance=0.25cm,>=open triangle 45]
+
+  \coordinate (origin);
+
+  \node[do, below right=of origin] (do1) {\textsf{DO}};
+  \node[do, below=of do1, xshift=1cm] (do2) {\textsf{DO}};
+  \node[do, below=of do2, xshift=1cm] (do3) {\textsf{DO}};
+  \node[do, below=of do3, xshift=1cm] (do4) {\textsf{DO}};
+
+  \node[plan, right=0cm of do1] (plan1) {\textsf{PLAN}};
+  \node[plan, right=0cm of do2] (plan2) {\textsf{PLAN}};
+  \node[plan, right=0cm of do3] (plan3) {\textsf{PLAN}};
+  \node[plan, right=0cm of do4] (plan4) {\textsf{PLAN}};
+
+  \node[time, left=of do1] (time1) {$t_0$};
+  \node[time, below=of time1] (time2) {$t_1$};
+  \node[time, below=of time2] (time3) {$t_2$};
+  \node[time, below=of time3] (time4) {$t_3$};
+
+  \node[input, above=of do1] (u0) {$u(t_0)$};
+  \node[input, right=0cm of u0] (u1) {$u(t_1)$};
+  \node[input, right=0cm of u1] (u2) {$u(t_2)$};
+  \node[input, right=0cm of u2] (u3) {$u(t_3)$};
+
+  \draw[->] (origin) -- node[pos=0.88] {control actions} +(10.5cm,0);
+  \draw[->] (origin) -- node[pos=1, below] {time} +(0,-5cm);
+\end{tikzpicture}

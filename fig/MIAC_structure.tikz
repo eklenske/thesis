@@ -1,0 +1,23 @@
+% created by Edgar Klenske
+
+\begin{tikzpicture}[auto, node distance=1.5cm,>=open triangle 45]
+\tikzstyle{block} = [fill=lightgray, rectangle,
+    minimum height=1.2cm, minimum width=2.5cm, align=center]
+
+    % We start by placing the blocks
+    \node[block] (controller) {Controller};
+    \node[block, right=of controller] (plant) {Plant};
+    \coordinate[right=of plant] (out);
+    \coordinate[below=0.8 cm of controller] (corner);
+    \node[block, above=0.6cm of plant, align=center] (est) {Model\\Estimator};
+
+    % Once the nodes are placed, connecting them is easy.
+    \draw[->] (controller) -- node[coordinate](u){} node[near start]{$u$}
+(plant);
+    \draw[->] (plant) -- node[coordinate](x){} node[near end]{$x$} (out);
+    \draw[->] (x) |- (corner) -- (controller);
+    \draw[->] (u) |- ([yshift=-4mm]est);
+    \draw[->] (x) |- (est);
+    \draw[->] ([yshift=6mm]est) -| node[left, near end]{$\hat
+f$}(controller);
+\end{tikzpicture}

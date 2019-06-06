@@ -1,0 +1,727 @@
+% This file was created by matlab2tikz.
+% Minimal pgfplots version: 1.3
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+%
+\begin{tikzpicture}
+
+
+\begin{axis}[%
+width=0.95092\figurewidth,
+height=0.152542\figureheight,
+at={(0\figurewidth,0.211864\figureheight)},
+scale only axis,
+axis on top,
+xmin=-0.5,
+xmax=20.5,
+xtick={0,2,4,6,8,10,12,14,16,18,20},
+xticklabels={\empty},
+ymin=-19,
+ymax=19,
+ylabel={$x^1$}
+]
+\addplot [forget plot] graphics
+[xmin=-0.5,xmax=20.5,ymin=-19.0635451505017,ymax=19.0635451505017]
+{fig/position_relevance-1.png};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+0.5	-18.999\\
+0.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+1.5	-18.999\\
+1.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+2.5	-18.999\\
+2.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+3.5	-18.999\\
+3.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+4.5	-18.999\\
+4.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+5.5	-18.999\\
+5.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+6.5	-18.999\\
+6.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+7.5	-18.999\\
+7.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+8.5	-18.999\\
+8.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+9.5	-18.999\\
+9.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+10.5	-18.999\\
+10.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+11.5	-18.999\\
+11.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+12.5	-18.999\\
+12.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+13.5	-18.999\\
+13.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+14.5	-18.999\\
+14.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+15.5	-18.999\\
+15.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+16.5	-18.999\\
+16.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+17.5	-18.999\\
+17.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+18.5	-18.999\\
+18.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+19.5	-18.999\\
+19.5	18.999\\
+};
+\addplot [color=black,solid,line width=1.0pt,forget plot]
+  table[row sep=crcr]{%
+9.5	-18.999\\
+9.5	18.999\\
+};
+\addplot[const plot,color=white!20!orange,dashed,line width=0.6pt] plot
+table[row sep=crcr] {%
+-0.5	0\\
+0.5	0\\
+1.5	0\\
+2.5	0\\
+3.5	0\\
+4.5	0\\
+5.5	0\\
+6.5	0\\
+7.5	0\\
+8.5	0\\
+9.5	0\\
+10.5	0\\
+11.5	10\\
+12.5	10\\
+13.5	10\\
+14.5	10\\
+15.5	10\\
+16.5	10\\
+17.5	0\\
+18.5	0\\
+19.5	0\\
+20.5	0\\
+};
+\end{axis}
+
+\begin{axis}[%
+width=0.95092\figurewidth,
+height=0.152542\figureheight,
+at={(0\figurewidth,0.635593\figureheight)},
+scale only axis,
+axis on top,
+xmin=-0.5,
+xmax=20.5,
+xtick={0,2,4,6,8,10,12,14,16,18,20},
+xticklabels={\empty},
+ymin=-19,
+ymax=19,
+ylabel={$x^1$}
+]
+\addplot [forget plot] graphics
+[xmin=-0.5,xmax=20.5,ymin=-19.0635451505017,ymax=19.0635451505017]
+{fig/position_relevance-2.png};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+0.5	-18.999\\
+0.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+1.5	-18.999\\
+1.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+2.5	-18.999\\
+2.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+3.5	-18.999\\
+3.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+4.5	-18.999\\
+4.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+5.5	-18.999\\
+5.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+6.5	-18.999\\
+6.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+7.5	-18.999\\
+7.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+8.5	-18.999\\
+8.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+9.5	-18.999\\
+9.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+10.5	-18.999\\
+10.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+11.5	-18.999\\
+11.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+12.5	-18.999\\
+12.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+13.5	-18.999\\
+13.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+14.5	-18.999\\
+14.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+15.5	-18.999\\
+15.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+16.5	-18.999\\
+16.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+17.5	-18.999\\
+17.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+18.5	-18.999\\
+18.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+19.5	-18.999\\
+19.5	18.999\\
+};
+\addplot [color=black,solid,line width=1.0pt,forget plot]
+  table[row sep=crcr]{%
+9.5	-18.999\\
+9.5	18.999\\
+};
+\addplot[const plot,color=white!20!orange,dashed,line width=0.6pt] plot
+table[row sep=crcr] {%
+-0.5	0\\
+0.5	0\\
+1.5	0\\
+2.5	0\\
+3.5	0\\
+4.5	0\\
+5.5	0\\
+6.5	0\\
+7.5	0\\
+8.5	0\\
+9.5	0\\
+10.5	0\\
+11.5	10\\
+12.5	10\\
+13.5	10\\
+14.5	10\\
+15.5	10\\
+16.5	10\\
+17.5	0\\
+18.5	0\\
+19.5	0\\
+20.5	0\\
+};
+\end{axis}
+
+\begin{axis}[%
+width=0.95092\figurewidth,
+height=0.152542\figureheight,
+at={(0\figurewidth,0.847458\figureheight)},
+scale only axis,
+axis on top,
+xmin=-0.5,
+xmax=20.5,
+xtick={0,2,4,6,8,10,12,14,16,18,20},
+xticklabels={\empty},
+ymin=-19,
+ymax=19,
+ylabel={$x^1$},
+name=plot1
+]
+\addplot [forget plot] graphics
+[xmin=-0.5,xmax=20.5,ymin=-19.0635451505017,ymax=19.0635451505017]
+{fig/position_relevance-3.png};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+0.5	-18.999\\
+0.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+1.5	-18.999\\
+1.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+2.5	-18.999\\
+2.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+3.5	-18.999\\
+3.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+4.5	-18.999\\
+4.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+5.5	-18.999\\
+5.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+6.5	-18.999\\
+6.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+7.5	-18.999\\
+7.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+8.5	-18.999\\
+8.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+9.5	-18.999\\
+9.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+10.5	-18.999\\
+10.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+11.5	-18.999\\
+11.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+12.5	-18.999\\
+12.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+13.5	-18.999\\
+13.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+14.5	-18.999\\
+14.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+15.5	-18.999\\
+15.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+16.5	-18.999\\
+16.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+17.5	-18.999\\
+17.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+18.5	-18.999\\
+18.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+19.5	-18.999\\
+19.5	18.999\\
+};
+\addplot [color=black,solid,line width=1.0pt,forget plot]
+  table[row sep=crcr]{%
+9.5	-18.999\\
+9.5	18.999\\
+};
+\addplot[const plot,color=white!20!orange,dashed,line width=0.6pt] plot
+table[row sep=crcr] {%
+-0.5	0\\
+0.5	0\\
+1.5	0\\
+2.5	0\\
+3.5	0\\
+4.5	0\\
+5.5	0\\
+6.5	0\\
+7.5	0\\
+8.5	0\\
+9.5	0\\
+10.5	0\\
+11.5	10\\
+12.5	10\\
+13.5	10\\
+14.5	10\\
+15.5	10\\
+16.5	10\\
+17.5	0\\
+18.5	0\\
+19.5	0\\
+20.5	0\\
+};
+\end{axis}
+
+\begin{axis}[%
+width=0.95092\figurewidth,
+height=0.152542\figureheight,
+at={(0\figurewidth,0.423729\figureheight)},
+scale only axis,
+axis on top,
+xmin=-0.5,
+xmax=20.5,
+xtick={0,2,4,6,8,10,12,14,16,18,20},
+xticklabels={\empty},
+ymin=-19,
+ymax=19,
+ylabel={$x^1$}
+]
+\addplot [forget plot] graphics
+[xmin=-0.5,xmax=20.5,ymin=-19.0635451505017,ymax=19.0635451505017]
+{fig/position_relevance-4.png};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+0.5	-18.999\\
+0.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+1.5	-18.999\\
+1.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+2.5	-18.999\\
+2.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+3.5	-18.999\\
+3.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+4.5	-18.999\\
+4.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+5.5	-18.999\\
+5.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+6.5	-18.999\\
+6.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+7.5	-18.999\\
+7.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+8.5	-18.999\\
+8.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+9.5	-18.999\\
+9.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+10.5	-18.999\\
+10.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+11.5	-18.999\\
+11.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+12.5	-18.999\\
+12.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+13.5	-18.999\\
+13.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+14.5	-18.999\\
+14.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+15.5	-18.999\\
+15.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+16.5	-18.999\\
+16.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+17.5	-18.999\\
+17.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+18.5	-18.999\\
+18.5	18.999\\
+};
+\addplot [color=black,solid,line width=0.1pt,forget plot]
+  table[row sep=crcr]{%
+19.5	-18.999\\
+19.5	18.999\\
+};
+\addplot [color=black,solid,line width=1.0pt,forget plot]
+  table[row sep=crcr]{%
+9.5	-18.999\\
+9.5	18.999\\
+};
+\addplot[const plot,color=white!20!orange,dashed,line width=0.6pt] plot
+table[row sep=crcr] {%
+-0.5	0\\
+0.5	0\\
+1.5	0\\
+2.5	0\\
+3.5	0\\
+4.5	0\\
+5.5	0\\
+6.5	0\\
+7.5	0\\
+8.5	0\\
+9.5	0\\
+10.5	0\\
+11.5	10\\
+12.5	10\\
+13.5	10\\
+14.5	10\\
+15.5	10\\
+16.5	10\\
+17.5	0\\
+18.5	0\\
+19.5	0\\
+20.5	0\\
+};\label{p:rel-ref}
+\end{axis}
+
+\begin{axis}[%
+width=0.95092\figurewidth,
+height=0.152542\figureheight,
+at={(0\figurewidth,0\figureheight)},
+scale only axis,
+area legend,
+xmin=-0.5,
+xmax=20.5,
+ymin=0,
+ymax=0.8,
+ylabel={cost},
+xlabel={time step}
+]
+\addplot[ybar,bar width=0.006586\figurewidth,bar
+shift=-0.01235\figurewidth,draw=none,fill=gra] plot table[row sep=crcr] {%
+0	1.07750812339694e-06\\
+1	8.05027213554839e-07\\
+2	5.26359087135789e-07\\
+3	7.98546885932938e-07\\
+4	8.0774091658148e-07\\
+5	9.50093662994627e-07\\
+6	3.16497458611144e-06\\
+7	4.52651339805337e-06\\
+8	1.63322820075672e-05\\
+9	2.58996324968806e-05\\
+10	0.354956846901056\\
+11	0.350548070361256\\
+12	0.046430136485929\\
+13	0.0506317879085697\\
+14	0.0486645802159835\\
+15	0.0503607598450719\\
+16	0.372596704527156\\
+17	0.337085334283287\\
+18	0.0429816147049191\\
+19	0.0409981148782342\\
+20	0.0500144118454355\\
+};\label{p:rel-lb}
+\addplot[ybar,bar width=0.006586\figurewidth,bar
+shift=-0.004116\figurewidth,draw=none,fill=dre] plot table[row sep=crcr] {%
+0	1.08538953150975e-06\\
+1	4.80462307321431e-06\\
+2	2.83396376041416e-06\\
+3	3.724867061627e-06\\
+4	2.43287238440579e-06\\
+5	3.08775796232532e-06\\
+6	7.50960107138779e-06\\
+7	9.80015300480957e-06\\
+8	3.14588333634783e-05\\
+9	4.84613747818794e-05\\
+10	0.368824743690067\\
+11	0.365559382453475\\
+12	0.0579476965060522\\
+13	0.0655979026145867\\
+14	0.694605232353094\\
+15	0.0653984362995093\\
+16	0.376877724841039\\
+17	0.346151514086482\\
+18	0.049757429166583\\
+19	0.0494122994276323\\
+20	0.0504609026996418\\
+};\label{p:rel-ce}
+\addplot[ybar,bar width=0.006586\figurewidth,bar
+shift=0.004116\figurewidth,draw=none,fill=blu] plot table[row sep=crcr] {%
+0	0.0323458066101164\\
+1	0.00197646649924654\\
+2	0.0132560662918452\\
+3	0.0110592473610331\\
+4	0.00875010538642438\\
+5	0.00512685436456477\\
+6	0.00375928339242415\\
+7	0.0892542070759292\\
+8	0.464957356299491\\
+9	0.0561545245357406\\
+10	0.376387291316986\\
+11	0.391279010054854\\
+12	0.0801537901582469\\
+13	0.0768381943056975\\
+14	0.111040273140585\\
+15	0.0619702677164325\\
+16	0.375996604938221\\
+17	0.337818310374169\\
+18	0.0482231296897825\\
+19	0.0469129815399892\\
+20	0.0508767580558112\\
+};\label{p:rel-eb}
+\addplot[ybar,bar width=0.006586\figurewidth,bar
+shift=0.01235\figurewidth,draw=none,fill=dgr] plot table[row sep=crcr] {%
+0	0.0459606706907119\\
+1	0.000370896150484869\\
+2	0.00357213175320736\\
+3	0.00903637662851476\\
+4	0.0110055379400133\\
+5	0.00971744916922525\\
+6	0.00648923093066008\\
+7	0.00184891679298315\\
+8	0.00345655832322061\\
+9	0.0153254205268274\\
+10	0.38524769105607\\
+11	0.368239508957435\\
+12	0.0626676003941937\\
+13	0.0636397382068617\\
+14	0.0598788933701991\\
+15	0.0581580147454025\\
+16	0.377731569105262\\
+17	0.339625736377616\\
+18	0.0466648939781099\\
+19	0.0443641236397481\\
+20	0.0502606847043132\\
+};\label{p:rel-dc}
+\end{axis}
+{\scriptsize
+\draw[<->,mgra] (plot1.north west) +(0, 0.3) --
++(0.4535\figurewidth, 0.3)
+node[midway,fill=white,inner sep=2pt,text=mgra] {no state cost};
+\draw[<->,black] (plot1.north west) +(0.4535\figurewidth, 0.3) --
++(0.951\figurewidth, 0.3)
+node[midway,fill=white,inner sep=2pt,text=black] {state cost};
+}
+\end{tikzpicture}%
